@@ -45,8 +45,11 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
@@ -59,15 +62,28 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        fetchRestaurant(u.id);
+        fetchRestaurant(u.id).finally(() => { if (mounted) setLoading(false); });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
+    }).catch(() => {
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
