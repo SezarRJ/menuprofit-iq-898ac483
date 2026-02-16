@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, DollarSign, Package, UtensilsCrossed,
-  BarChart3, Settings, LogOut, Percent, Menu, X
+  BarChart3, Settings, LogOut, Percent, Menu, X, Sparkles
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/lib/restaurant-context";
@@ -18,6 +18,7 @@ const navItems = [
   { path: "/recipes", label: "الوصفات", icon: UtensilsCrossed },
   { path: "/sales", label: "المبيعات", icon: BarChart3 },
   { path: "/discount-rules", label: "قواعد الخصومات", icon: Percent },
+  { path: "/ai-assistant", label: "المساعد الذكي", icon: Sparkles },
   { path: "/setup", label: "الإعدادات", icon: Settings },
 ];
 
