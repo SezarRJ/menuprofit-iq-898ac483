@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { exportToExcel, exportToPDF } from "@/lib/export-utils";
 
 const categories = ["شاورما", "برغر", "بيتزا", "مشويات", "سلطات", "مشروبات", "حلويات", "عام"];
 
@@ -109,6 +111,52 @@ export default function Recipes() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">الوصفات</h1>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline"><Download className="w-4 h-4 ml-2" />تصدير</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => {
+                  const opts = {
+                    title: "تقرير تكاليف الأطباق",
+                    columns: [
+                      { header: "الصحن", key: "name" },
+                      { header: "التصنيف", key: "category" },
+                      { header: "تكلفة المكونات", key: "ingredient_cost" },
+                      { header: "حصة المصاريف", key: "overhead" },
+                      { header: "التكلفة الحقيقية", key: "true_cost" },
+                      { header: "سعر البيع", key: "selling_price" },
+                      { header: "الهامش %", key: "margin" },
+                    ],
+                    data: recipes.map(r => ({ ...r, margin: r.margin.toFixed(0) + "%" })),
+                    currency,
+                  };
+                  exportToExcel(opts);
+                }}>
+                  <FileSpreadsheet className="w-4 h-4 ml-2" />Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const opts = {
+                    title: "تقرير تكاليف الأطباق",
+                    columns: [
+                      { header: "الصحن", key: "name" },
+                      { header: "التصنيف", key: "category" },
+                      { header: "تكلفة المكونات", key: "ingredient_cost" },
+                      { header: "حصة المصاريف", key: "overhead" },
+                      { header: "التكلفة الحقيقية", key: "true_cost" },
+                      { header: "سعر البيع", key: "selling_price" },
+                      { header: "الهامش %", key: "margin" },
+                    ],
+                    data: recipes.map(r => ({ ...r, margin: r.margin.toFixed(0) + "%" })),
+                    currency,
+                  };
+                  exportToPDF(opts);
+                }}>
+                  <FileText className="w-4 h-4 ml-2" />PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           <Dialog open={open} onOpenChange={v => { if (!v) { setOpen(false); setDishName(""); setCategory("عام"); setSellingPrice(""); setRecipeIngredients([]); } else setOpen(true); }}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 ml-2" />إضافة وصفة جديدة</Button></DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -158,6 +206,7 @@ export default function Recipes() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <Card className="shadow-card">
