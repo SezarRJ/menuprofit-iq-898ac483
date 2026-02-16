@@ -47,7 +47,7 @@ export default function Setup() {
         owner_id: user.id, name, city, default_currency: currency, target_margin_pct: Number(margin),
       });
       if (error) toast.error(error.message);
-      else { toast.success("تم إعداد المطعم بنجاح!"); await refreshRestaurant(); navigate("/dashboard"); }
+      else { toast.success("تم إعداد المطعم بنجاح!"); localStorage.setItem("setup_done", "1"); await refreshRestaurant(); navigate("/dashboard"); }
     }
     setLoading(false);
   };
