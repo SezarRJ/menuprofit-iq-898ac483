@@ -21,9 +21,10 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, restaurant, loading } = useRestaurant();
+  const setupDone = localStorage.getItem("setup_done") === "1";
   if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">جاري التحميل...</p></div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!restaurant && window.location.pathname !== "/setup") return <Navigate to="/setup" replace />;
+  if (!restaurant && !setupDone && window.location.pathname !== "/setup") return <Navigate to="/setup" replace />;
   return <>{children}</>;
 }
 
