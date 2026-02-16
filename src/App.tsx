@@ -15,11 +15,16 @@ import RecipeDetail from "./pages/RecipeDetail";
 import DiscountRules from "./pages/DiscountRules";
 import Sales from "./pages/Sales";
 import AIAssistant from "./pages/AIAssistant";
+import Navigator from "./pages/Navigator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Set to true to bypass all auth/setup guards during prototyping
+const PROTOTYPE_MODE = true;
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  if (PROTOTYPE_MODE) return <>{children}</>;
   const { user, restaurant, loading } = useRestaurant();
   const setupDone = localStorage.getItem("setup_done") === "1";
   if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">جاري التحميل...</p></div>;
@@ -29,6 +34,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
+  if (PROTOTYPE_MODE) return <>{children}</>;
   const { user, restaurant, loading } = useRestaurant();
   if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">جاري التحميل...</p></div>;
   if (user && restaurant) return <Navigate to="/dashboard" replace />;
@@ -44,6 +50,7 @@ const App = () => (
       <BrowserRouter>
         <RestaurantProvider>
           <Routes>
+            <Route path="/_nav" element={<Navigator />} />
             <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
             <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
             <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />
@@ -55,7 +62,7 @@ const App = () => (
             <Route path="/discount-rules" element={<ProtectedRoute><DiscountRules /></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
             <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/_nav" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </RestaurantProvider>
