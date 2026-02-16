@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { exportToExcel, exportToPDF } from "@/lib/export-utils";
 
 interface Cost {
   id: string;
@@ -99,6 +101,46 @@ export default function Costs() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">المصاريف التشغيلية الشهرية</h1>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline"><Download className="w-4 h-4 ml-2" />تصدير</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => {
+                  const opts = {
+                    title: "المصاريف التشغيلية",
+                    columns: [
+                      { header: "البند", key: "name" },
+                      { header: "النوع", key: "type" },
+                      { header: "المبلغ الشهري", key: "amount" },
+                    ],
+                    data: costs.map(c => ({ name: c.name, type: c.cost_type === "fixed" ? "ثابت" : "متغير", amount: c.monthly_amount })),
+                    currency,
+                    footerRow: ["الإجمالي", "", total.toLocaleString() + currency],
+                  };
+                  exportToExcel(opts);
+                }}>
+                  <FileSpreadsheet className="w-4 h-4 ml-2" />Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const opts = {
+                    title: "المصاريف التشغيلية",
+                    columns: [
+                      { header: "البند", key: "name" },
+                      { header: "النوع", key: "type" },
+                      { header: "المبلغ الشهري", key: "amount" },
+                    ],
+                    data: costs.map(c => ({ name: c.name, type: c.cost_type === "fixed" ? "ثابت" : "متغير", amount: c.monthly_amount })),
+                    currency,
+                    footerRow: ["الإجمالي", "", total.toLocaleString() + currency],
+                  };
+                  exportToPDF(opts);
+                }}>
+                  <FileText className="w-4 h-4 ml-2" />PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); else setOpen(true); }}>
             <DialogTrigger asChild>
               <Button><Plus className="w-4 h-4 ml-2" />إضافة مصروف جديد</Button>
@@ -119,6 +161,7 @@ export default function Costs() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <Tabs defaultValue="fixed">
