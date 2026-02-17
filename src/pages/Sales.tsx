@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, ArrowLeft, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { validateFileSize, validateImportData } from "@/lib/import-validation";
 
 type Step = "upload" | "mapping" | "matching";
 
@@ -30,32 +32,53 @@ export default function Sales() {
   const [recipes, setRecipes] = useState<{ id: string; name: string }[]>([]);
   const [importId, setImportId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file size
+    const sizeError = validateFileSize(file);
+    if (sizeError) {
+      toast.error(sizeError);
+      return;
+    }
+
     setFileName(file.name);
 
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json<ParsedRow>(ws);
-    if (json.length === 0) { toast.error("الملف فارغ"); return; }
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json<ParsedRow>(ws);
+      if (json.length === 0) { toast.error("الملف فارغ"); return; }
 
-    const hdrs = Object.keys(json[0]);
-    setHeaders(hdrs);
-    setRows(json);
-    setDateCol(hdrs[0]);
-    setDishCol(hdrs.length > 1 ? hdrs[1] : hdrs[0]);
-    setQtyCol(hdrs.length > 2 ? hdrs[2] : hdrs[0]);
-    setStep("mapping");
+      const hdrs = Object.keys(json[0]);
+      setHeaders(hdrs);
+      setRows(json);
+      setDateCol(hdrs[0]);
+      setDishCol(hdrs.length > 1 ? hdrs[1] : hdrs[0]);
+      setQtyCol(hdrs.length > 2 ? hdrs[2] : hdrs[0]);
+      setStep("mapping");
+    } catch {
+      toast.error("خطأ في قراءة الملف. تأكد من أنه ملف CSV أو Excel صالح.");
+    }
   };
 
   const handleImport = async () => {
     if (!restaurant || !dateCol || !dishCol || !qtyCol) return;
+
+    // Validate data before import
+    const validation = validateImportData(rows, dateCol, dishCol, qtyCol);
+    if (!validation.valid) {
+      validation.errors.forEach(err => toast.error(err));
+      return;
+    }
+    setValidationWarnings(validation.warnings);
+
     setLoading(true);
 
-    // Create import record
     const { data: imp, error: impErr } = await supabase.from("sales_imports").insert({
       restaurant_id: restaurant.id, file_name: fileName,
     }).select("id").single();
@@ -63,16 +86,14 @@ export default function Sales() {
     if (impErr || !imp) { toast.error(impErr?.message ?? "خطأ"); setLoading(false); return; }
     setImportId(imp.id);
 
-    // Load recipes for matching
     const { data: recs } = await supabase.from("recipes").select("id, name").eq("restaurant_id", restaurant.id);
     setRecipes(recs ?? []);
 
-    // Insert sales rows
-    const salesRows = rows.map(r => ({
+    const salesRows = validation.sanitizedRows.map(r => ({
       sales_import_id: imp.id,
       sale_date: r[dateCol] ? String(r[dateCol]) : null,
       dish_name: String(r[dishCol] ?? ""),
-      quantity: Number(r[qtyCol]) || 0,
+      quantity: Math.max(0, Number(r[qtyCol]) || 0),
       matched_recipe_id: null as string | null,
     }));
 
@@ -84,15 +105,39 @@ export default function Sales() {
       matchMap[dish] = match?.id ?? null;
     }
 
-    // Apply matches
     const rowsToInsert = salesRows.map(r => ({
       ...r,
       matched_recipe_id: matchMap[r.dish_name] ?? null,
     }));
 
-    await supabase.from("sales_rows").insert(rowsToInsert);
+    // Insert in batches to avoid timeout
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < rowsToInsert.length; i += BATCH_SIZE) {
+      const batch = rowsToInsert.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase.from("sales_rows").insert(batch);
+      if (error) {
+        toast.error(`خطأ في إدخال البيانات: ${error.message}`);
+        setLoading(false);
+        return;
+      }
+    }
 
-    // Find unmatched
+    // Log audit (best effort)
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        await supabase.from("audit_logs").insert({
+          actor_id: currentUser.id,
+          action: "sales_import",
+          entity_type: "sales_import",
+          entity_id: imp.id,
+          metadata: { file_name: fileName, row_count: rowsToInsert.length },
+        });
+      }
+    } catch {
+      // Don't fail on audit log errors
+    }
+
     const unmatched = uniqueDishes.filter(d => !matchMap[d]).map(d => ({ name: d, recipe_id: "" }));
     setUnmatchedDishes(unmatched);
     setLoading(false);
@@ -122,7 +167,7 @@ export default function Sales() {
 
   const resetAll = () => {
     setStep("upload"); setFileName(""); setHeaders([]); setRows([]); setDateCol(""); setDishCol(""); setQtyCol("");
-    setUnmatchedDishes([]); setImportId("");
+    setUnmatchedDishes([]); setImportId(""); setValidationWarnings([]);
   };
 
   return (
@@ -134,6 +179,17 @@ export default function Sales() {
           {step === "matching" && "مطابقة أسماء الأطباق"}
         </h1>
 
+        {validationWarnings.length > 0 && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc list-inside space-y-1">
+                {validationWarnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {step === "upload" && (
           <Card className="shadow-card">
             <CardContent className="pt-6 flex flex-col items-center gap-4 py-12">
@@ -141,14 +197,13 @@ export default function Sales() {
               <Button size="lg" onClick={() => fileRef.current?.click()}>
                 <Upload className="w-5 h-5 ml-2" />رفع ملف CSV أو Excel
               </Button>
-              <p className="text-sm text-muted-foreground">يدعم ملفات CSV و Excel</p>
+              <p className="text-sm text-muted-foreground">يدعم ملفات CSV و Excel (حد أقصى 10 ميجا)</p>
             </CardContent>
           </Card>
         )}
 
         {step === "mapping" && (
           <>
-            {/* Preview */}
             <Card className="shadow-card">
               <CardHeader><CardTitle>معاينة البيانات (أول 10 صفوف)</CardTitle></CardHeader>
               <CardContent className="p-0 overflow-x-auto">
@@ -165,7 +220,6 @@ export default function Sales() {
               </CardContent>
             </Card>
 
-            {/* Column Mapping */}
             <Card className="shadow-card">
               <CardContent className="pt-6 space-y-4">
                 <div className="space-y-2">
@@ -188,6 +242,10 @@ export default function Sales() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                   </Select>
+                </div>
+                <div className="bg-muted rounded-lg p-3 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 inline ml-1 text-primary" />
+                  {rows.length.toLocaleString()} صف جاهز للاستيراد
                 </div>
                 <Button onClick={handleImport} className="w-full" disabled={loading}>
                   {loading ? "جاري الاستيراد..." : "استيراد البيانات"}
