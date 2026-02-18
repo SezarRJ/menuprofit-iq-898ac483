@@ -60,12 +60,15 @@
 ## Stripe (Deferred)
 - [x] `stripe_processed_events` table for idempotency
 - [x] `subscriptions` table ready
-- [ ] Webhook endpoint implementation
-- [ ] Signature verification
+- [x] Webhook endpoint implementation
+- [x] Signature verification
 - [ ] Portal link generation
 
 ## Tests
-- [ ] Unit tests for cost formulas
-- [ ] Unit tests for import validation
-- [ ] Integration tests for tenant isolation
-- [ ] E2E tests for critical workflows
+- [x] Unit tests for cost formulas
+- [x] Unit tests for import validation
+- [x] Unit tests for Saturday week aggregation
+- [x] Unit tests for plan gating
+- [x] Unit tests for export sanitization
+- [ ] Integration tests for tenant isolation (requires real DB)
+- [ ] E2E tests for critical workflows (requires Playwright)

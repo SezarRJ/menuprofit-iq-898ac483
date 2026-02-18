@@ -7,13 +7,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Activity, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Shield, Users, Activity, Eye, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPanel() {
   const { isAdmin, roles } = useRestaurant();
+  const { toast } = useToast();
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reasonModal, setReasonModal] = useState<{ open: boolean; action: string; dataset: string }>({ open: false, action: "", dataset: "" });
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     if (isAdmin) loadAdminData();
@@ -42,7 +49,6 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  // Server-side role check: if not admin, redirect
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -51,6 +57,36 @@ export default function AdminPanel() {
   const canExport = roles.includes("master_admin") || roles.includes("billing_admin");
 
   const formatDate = (d: string) => new Date(d).toLocaleString("ar-IQ");
+
+  const handleExportRequest = (dataset: string) => {
+    if (!canExport) {
+      toast({ title: "غير مصرح", description: "ليس لديك صلاحية التصدير", variant: "destructive" });
+      return;
+    }
+    setReasonModal({ open: true, action: "export", dataset });
+    setReason("");
+  };
+
+  const handleExportConfirm = async () => {
+    if (!reason.trim() || reason.trim().length < 5) {
+      toast({ title: "مطلوب", description: "يجب كتابة سبب التصدير (5 أحرف على الأقل)", variant: "destructive" });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("admin_access_logs").insert({
+        admin_id: user.id,
+        dataset: reasonModal.dataset,
+        action_type: "export",
+        reason: reason.trim(),
+      });
+    }
+
+    setReasonModal({ open: false, action: "", dataset: "" });
+    toast({ title: "تم", description: `تم تسجيل التصدير: ${reasonModal.dataset}` });
+    // In production, trigger actual export here
+  };
 
   return (
     <AppLayout>
@@ -92,6 +128,18 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Export buttons with reason requirement */}
+        {canExport && (
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => handleExportRequest("audit_logs")}>
+              <Download className="w-4 h-4 ml-2" />تصدير سجل المراجعة
+            </Button>
+            <Button variant="outline" onClick={() => handleExportRequest("access_logs")}>
+              <Download className="w-4 h-4 ml-2" />تصدير سجل الوصول
+            </Button>
+          </div>
+        )}
 
         <Tabs defaultValue="audit">
           <TabsList>
@@ -160,6 +208,31 @@ export default function AdminPanel() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Admin Reason Required Modal */}
+      <Dialog open={reasonModal.open} onOpenChange={(open) => setReasonModal({ ...reasonModal, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>سبب التصدير مطلوب</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            يجب توضيح سبب تصدير البيانات. سيتم تسجيل السبب في سجل الوصول.
+          </p>
+          <Textarea
+            placeholder="اكتب سبب التصدير..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={500}
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReasonModal({ open: false, action: "", dataset: "" })}>
+              إلغاء
+            </Button>
+            <Button onClick={handleExportConfirm}>تأكيد وتصدير</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

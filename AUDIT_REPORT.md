@@ -94,9 +94,9 @@
 
 ### 13. Export Functions Don't Sanitize Data
 - **File**: `src/lib/export-utils.ts`
-- **Severity**: 🟢 LOW
+- **Severity**: ✅ FIXED
 - **Issue**: Excel exports may contain formula injection
-- **Fix**: Prefix values starting with `=`, `+`, `-`, `@` with `'`
+- **Fix**: Values starting with `=`, `+`, `-`, `@` are now prefixed with `'`
 
 ### 14. No Rate Limiting on Client-Side Actions
 - **Severity**: 🟢 LOW
