@@ -117,7 +117,9 @@ export default function Dashboard() {
         if (!s.sale_date) return;
         const d = new Date(s.sale_date);
         const weekStart = new Date(d);
-        weekStart.setDate(d.getDate() - d.getDay());
+        // Saturday-based week (Iraq market)
+        const daysSinceSaturday = (d.getDay() + 1) % 7;
+        weekStart.setDate(d.getDate() - daysSinceSaturday);
         const key = weekStart.toISOString().slice(5, 10);
         if (!weekMap[key]) weekMap[key] = { quantity: 0, revenue: 0 };
         weekMap[key].quantity += Number(s.quantity);

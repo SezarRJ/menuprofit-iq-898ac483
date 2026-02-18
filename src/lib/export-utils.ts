@@ -17,7 +17,15 @@ interface ExportOptions {
 
 export function exportToExcel({ title, columns, data, footerRow }: ExportOptions) {
   const headers = columns.map((c) => c.header);
-  const rows = data.map((row) => columns.map((c) => row[c.key] ?? ""));
+  const rows = data.map((row) => columns.map((c) => {
+    const val = row[c.key];
+    if (typeof val === "string") {
+      // Sanitize formula injection in Excel exports
+      const FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r"];
+      if (FORMULA_PREFIXES.some(p => val.startsWith(p))) return "'" + val;
+    }
+    return val ?? "";
+  }));
   const wsData = [headers, ...rows];
   if (footerRow) wsData.push(footerRow);
 
