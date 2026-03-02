@@ -26,7 +26,7 @@ export default function Signup() {
       toast.error("خطأ: " + error.message);
     } else {
       toast.success("تم إنشاء الحساب! يرجى تأكيد البريد الإلكتروني ثم تسجيل الدخول.");
-      navigate("/login");
+      navigate("/auth/login");
     }
   };
 
@@ -53,7 +53,7 @@ export default function Signup() {
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
             لديك حساب؟{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">تسجيل الدخول</Link>
+            <Link to="/auth/login" className="text-primary font-medium hover:underline">تسجيل الدخول</Link>
           </p>
         </CardContent>
       </Card>

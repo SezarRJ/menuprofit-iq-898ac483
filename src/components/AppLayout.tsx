@@ -7,6 +7,8 @@ import {
   Lock, Crown, Building2, User
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
+import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
+import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +19,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-type PlanTier = "free" | "pro" | "elite";
+// PlanTier imported from restaurant-context
 
 interface NavItem {
   path: string;
@@ -57,7 +59,7 @@ const sectionLabels: Record<string, Record<string, string>> = {
   en: { costManagement: "Cost Management", menu: "Menu", competition: "Competition", intelligence: "Intelligence" },
 };
 
-const DEMO_PLAN: PlanTier = "elite";
+// Removed hardcoded plan constant
 
 function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
   if (!minPlan) return true;
@@ -69,7 +71,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const location = useLocation();
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
-  const plan = DEMO_PLAN;
+  const { plan, restaurant } = useRestaurant();
 
   return (
     <div className="flex flex-col h-full">
@@ -154,6 +156,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
 function TopBar({ onMenuClick, collapsed, onToggleSidebar }: { onMenuClick: () => void; collapsed: boolean; onToggleSidebar: () => void }) {
   const { t, lang, dir, setLang } = useLanguage();
+  const { restaurant } = useRestaurant();
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -179,7 +182,7 @@ function TopBar({ onMenuClick, collapsed, onToggleSidebar }: { onMenuClick: () =
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="text-xs border-primary/30 text-primary hidden sm:inline-flex">
           <Building2 className="w-3 h-3 me-1" />
-          مطعم الوردة
+          {restaurant?.name || "MenuProfit"}
         </Badge>
 
         <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
@@ -205,7 +208,7 @@ function TopBar({ onMenuClick, collapsed, onToggleSidebar }: { onMenuClick: () =
               <Building2 className="w-4 h-4 me-2" />{t("restaurant")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={() => navigate("/auth/login")}>
+            <DropdownMenuItem className="text-destructive" onClick={async () => { await supabase.auth.signOut(); navigate("/auth/login"); }}>
               <LogOut className="w-4 h-4 me-2" />{t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -21,7 +21,7 @@ export default function Login() {
     if (error) {
       toast.error("خطأ في تسجيل الدخول: " + error.message);
     } else {
-      navigate("/dashboard");
+      navigate("/app/dashboard");
     }
   };
 
@@ -65,7 +65,7 @@ export default function Login() {
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
             ليس لديك حساب؟{" "}
-            <Link to="/signup" className="text-primary font-medium hover:underline">
+            <Link to="/auth/register" className="text-primary font-medium hover:underline">
               إنشاء حساب
             </Link>
           </p>

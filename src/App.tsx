@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { I18nProvider } from "@/lib/i18n";
+import { RestaurantProvider } from "@/lib/restaurant-context";
 
 // Public pages
 import LandingPage from "./pages/LandingPage";
@@ -50,50 +51,60 @@ const App = () => (
       <Toaster />
       <Sonner />
       <I18nProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/register" element={<Register />} />
-            <Route path="/contact" element={<ContactPage />} />
+        <RestaurantProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/register" element={<Register />} />
+              <Route path="/contact" element={<ContactPage />} />
 
-            {/* App */}
-            <Route path="/app/dashboard" element={<Dashboard />} />
-            <Route path="/app/ingredients" element={<Ingredients />} />
-            <Route path="/app/ingredients/import" element={<IngredientImport />} />
-            <Route path="/app/suppliers" element={<Suppliers />} />
-            <Route path="/app/overhead" element={<Overhead />} />
-            <Route path="/app/recipes" element={<Recipes />} />
-            <Route path="/app/recipes/new" element={<RecipeBuilder />} />
-            <Route path="/app/recipes/:id" element={<RecipeBuilder />} />
-            <Route path="/app/sales/import" element={<SalesImport />} />
-            <Route path="/app/competition/competitors" element={<Competitors />} />
-            <Route path="/app/competition/items" element={<CompetitorItems />} />
-            <Route path="/app/competition/mapping" element={<CompetitorMapping />} />
-            <Route path="/app/competition/report" element={<CompetitionReport />} />
-            <Route path="/app/reports" element={<Reports />} />
-            <Route path="/app/recommendations" element={<Recommendations />} />
-            <Route path="/app/risk-radar" element={<RiskRadar />} />
-            <Route path="/app/actions" element={<Actions />} />
-            <Route path="/app/settings/profile" element={<SettingsProfile />} />
-            <Route path="/app/settings/restaurant" element={<SettingsRestaurant />} />
+              {/* App */}
+              <Route path="/app/dashboard" element={<Dashboard />} />
+              <Route path="/app/ingredients" element={<Ingredients />} />
+              <Route path="/app/ingredients/import" element={<IngredientImport />} />
+              <Route path="/app/suppliers" element={<Suppliers />} />
+              <Route path="/app/overhead" element={<Overhead />} />
+              <Route path="/app/recipes" element={<Recipes />} />
+              <Route path="/app/recipes/new" element={<RecipeBuilder />} />
+              <Route path="/app/recipes/:id" element={<RecipeBuilder />} />
+              <Route path="/app/sales/import" element={<SalesImport />} />
+              <Route path="/app/competition/competitors" element={<Competitors />} />
+              <Route path="/app/competition/items" element={<CompetitorItems />} />
+              <Route path="/app/competition/mapping" element={<CompetitorMapping />} />
+              <Route path="/app/competition/report" element={<CompetitionReport />} />
+              <Route path="/app/reports" element={<Reports />} />
+              <Route path="/app/recommendations" element={<Recommendations />} />
+              <Route path="/app/risk-radar" element={<RiskRadar />} />
+              <Route path="/app/actions" element={<Actions />} />
+              <Route path="/app/settings/profile" element={<SettingsProfile />} />
+              <Route path="/app/settings/restaurant" element={<SettingsRestaurant />} />
 
-            {/* Master Admin */}
-            <Route path="/master-admin/login" element={<MasterAdminLogin />} />
-            <Route path="/master-admin/dashboard" element={<MasterAdminDashboard />} />
-            <Route path="/master-admin/tenants" element={<MasterAdminTenants />} />
-            <Route path="/master-admin/audit-logs" element={<MasterAdminAuditLogs />} />
-            <Route path="/master-admin/feature-flags" element={<MasterAdminFeatureFlags />} />
-            <Route path="/master-admin/ai-controls" element={<MasterAdminAIControls />} />
+              {/* Master Admin */}
+              <Route path="/master-admin/login" element={<MasterAdminLogin />} />
+              <Route path="/master-admin/dashboard" element={<MasterAdminDashboard />} />
+              <Route path="/master-admin/tenants" element={<MasterAdminTenants />} />
+              <Route path="/master-admin/audit-logs" element={<MasterAdminAuditLogs />} />
+              <Route path="/master-admin/feature-flags" element={<MasterAdminFeatureFlags />} />
+              <Route path="/master-admin/ai-controls" element={<MasterAdminAIControls />} />
 
-            {/* Redirects */}
-            <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="/master-admin" element={<Navigate to="/master-admin/dashboard" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Legacy redirects */}
+              <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+              <Route path="/signup" element={<Navigate to="/auth/register" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="/ingredients" element={<Navigate to="/app/ingredients" replace />} />
+              <Route path="/recipes" element={<Navigate to="/app/recipes" replace />} />
+              <Route path="/recipes/:id" element={<Navigate to="/app/recipes" replace />} />
+
+              {/* Redirects */}
+              <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="/master-admin" element={<Navigate to="/master-admin/dashboard" replace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </RestaurantProvider>
       </I18nProvider>
     </TooltipProvider>
   </QueryClientProvider>

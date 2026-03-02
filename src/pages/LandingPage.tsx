@@ -54,8 +54,8 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="text-xl font-bold text-primary">MenuProfit</h1>
           <div className="flex gap-3">
-            <Button variant="ghost" asChild><Link to="/login">تسجيل الدخول</Link></Button>
-            <Button asChild><Link to="/signup">ابدأ مجاناً</Link></Button>
+            <Button variant="ghost" asChild><Link to="/auth/login">تسجيل الدخول</Link></Button>
+            <Button asChild><Link to="/auth/register">ابدأ مجاناً</Link></Button>
           </div>
         </div>
       </nav>
@@ -71,7 +71,7 @@ export default function LandingPage() {
           </p>
           <div className="flex gap-4 justify-center pt-4">
             <Button size="lg" asChild className="text-lg px-8">
-              <Link to="/signup">ابدأ مجاناً <ChevronLeft className="w-5 h-5 mr-2" /></Link>
+              <Link to="/auth/register">ابدأ مجاناً <ChevronLeft className="w-5 h-5 mr-2" /></Link>
             </Button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function LandingPage() {
                     ))}
                   </ul>
                   <Button className="w-full" variant={p.highlighted ? "default" : "outline"} asChild>
-                    <Link to="/signup">{p.cta}</Link>
+                    <Link to="/auth/register">{p.cta}</Link>
                   </Button>
                 </CardContent>
               </Card>

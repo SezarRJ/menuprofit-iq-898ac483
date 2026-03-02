@@ -224,7 +224,7 @@ export default function Recipes() {
                 {recipes.map(r => (
                   <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
-                      <Link to={`/recipes/${r.id}`} className="font-medium text-primary hover:underline">{r.name}</Link>
+                      <Link to={`/app/recipes/${r.id}`} className="font-medium text-primary hover:underline">{r.name}</Link>
                     </TableCell>
                     <TableCell>{r.category}</TableCell>
                     <TableCell>{r.true_cost.toFixed(2)}{currency}</TableCell>
