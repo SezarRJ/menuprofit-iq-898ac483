@@ -150,6 +150,126 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string
+          restaurant_id: string
+          tier: string
+          total_points: number
+          total_spent: number
+          visit_count: number
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          restaurant_id: string
+          tier?: string
+          total_points?: number
+          total_spent?: number
+          visit_count?: number
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          restaurant_id?: string
+          tier?: string
+          total_points?: number
+          total_spent?: number
+          visit_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_costs: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          monthly_amount: number
+          name: string
+          restaurant_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          monthly_amount?: number
+          name: string
+          restaurant_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          monthly_amount?: number
+          name?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_costs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hidden_costs: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          monthly_amount: number
+          name: string
+          per_recipe: boolean
+          restaurant_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          monthly_amount?: number
+          name: string
+          per_recipe?: boolean
+          restaurant_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          monthly_amount?: number
+          name?: string
+          per_recipe?: boolean
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hidden_costs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           created_at: string
@@ -178,6 +298,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ingredients_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          description: string | null
+          id: string
+          points: number
+          restaurant_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          points?: number
+          restaurant_id: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          points?: number
+          restaurant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
@@ -251,6 +416,122 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "operating_costs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_suggestions: {
+        Row: {
+          attractive_price: number
+          created_at: string
+          explanation: Json | null
+          id: string
+          min_safe_price: number
+          premium_price: number
+          recipe_id: string
+          recommended_price: number
+          restaurant_id: string
+          status: string
+        }
+        Insert: {
+          attractive_price?: number
+          created_at?: string
+          explanation?: Json | null
+          id?: string
+          min_safe_price?: number
+          premium_price?: number
+          recipe_id: string
+          recommended_price?: number
+          restaurant_id: string
+          status?: string
+        }
+        Update: {
+          attractive_price?: number
+          created_at?: string
+          explanation?: Json | null
+          id?: string
+          min_safe_price?: number
+          premium_price?: number
+          recipe_id?: string
+          recommended_price?: number
+          restaurant_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_suggestions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_suggestions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          attractiveness: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          expected_margin: number
+          id: string
+          reason: string | null
+          recipe_ids: string[] | null
+          restaurant_id: string
+          start_date: string | null
+          status: string
+          suggested_price: number
+          timing: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          attractiveness?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          expected_margin?: number
+          id?: string
+          reason?: string | null
+          recipe_ids?: string[] | null
+          restaurant_id: string
+          start_date?: string | null
+          status?: string
+          suggested_price?: number
+          timing?: string | null
+          title: string
+          type?: string
+        }
+        Update: {
+          attractiveness?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          expected_margin?: number
+          id?: string
+          reason?: string | null
+          recipe_ids?: string[] | null
+          restaurant_id?: string
+          start_date?: string | null
+          status?: string
+          suggested_price?: number
+          timing?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
@@ -334,6 +615,7 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          baseline_plates: number
           city: string
           created_at: string
           default_currency: string
@@ -344,6 +626,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          baseline_plates?: number
           city?: string
           created_at?: string
           default_currency?: string
@@ -354,6 +637,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          baseline_plates?: number
           city?: string
           created_at?: string
           default_currency?: string
@@ -396,7 +680,10 @@ export type Database = {
       }
       sales_rows: {
         Row: {
+          channel: string | null
           created_at: string
+          customer_email: string | null
+          customer_phone: string | null
           dish_name: string
           id: string
           matched_recipe_id: string | null
@@ -405,7 +692,10 @@ export type Database = {
           sales_import_id: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
           dish_name?: string
           id?: string
           matched_recipe_id?: string | null
@@ -414,7 +704,10 @@ export type Database = {
           sales_import_id: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
           dish_name?: string
           id?: string
           matched_recipe_id?: string | null
