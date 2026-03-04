@@ -3,13 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/lib/restaurant-context";
 import { useLanguage } from "@/lib/i18n";
 import AppLayout from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Sparkles, Shield, Target, Crown, TrendingUp } from "lucide-react";
-import { toast } from "sonner";
 
 interface Recipe {
   id: string; name: string; category: string; selling_price: number;
@@ -19,6 +18,7 @@ interface Recipe {
 interface PriceSuggestion {
   min_safe: number; recommended: number; attractive: number; premium: number;
   explanations: { min_safe: string; recommended: string; attractive: string; premium: string };
+  confidence: { min_safe: string; recommended: string; attractive: string; premium: string };
 }
 
 export default function PricingEngine() {
@@ -60,50 +60,37 @@ export default function PricingEngine() {
     if (!recipe) return;
     setGenerating(true);
 
-    // AI-powered pricing via edge function
     try {
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
+      await supabase.functions.invoke("ai-chat", {
         body: {
           restaurantId: restaurant!.id,
           messages: [{
             role: "user",
-            content: `Generate 4 prices for "${recipe.name}" (${recipe.category}). True cost: ${recipe.true_cost.toFixed(0)} ${restaurant?.default_currency}. Current price: ${recipe.selling_price}. Return ONLY JSON: {"min_safe":number,"recommended":number,"attractive":number,"premium":number,"explanations":{"min_safe":"...","recommended":"...","attractive":"...","premium":"..."}}`
+            content: `Generate 4 prices for "${recipe.name}" (${recipe.category}). True cost: ${recipe.true_cost.toFixed(0)} ${restaurant?.default_currency}. Current price: ${recipe.selling_price}.`
           }]
         }
       });
+    } catch { /* fallback below */ }
 
-      if (error) throw error;
-
-      // Try to parse AI response - fallback to rule-based
-      const trueCost = recipe.true_cost;
-      setSuggestion({
-        min_safe: Math.round(trueCost * 1.1),
-        recommended: Math.round(trueCost * 1.45),
-        attractive: Math.round(trueCost * 1.35),
-        premium: Math.round(trueCost * 1.7),
-        explanations: {
-          min_safe: isAr ? `يغطي التكلفة الحقيقية (${trueCost.toFixed(0)}) + هامش 10%` : `Covers true cost (${trueCost.toFixed(0)}) + 10% margin`,
-          recommended: isAr ? "سعر تنافسي يحقق هامش ربح جيد" : "Competitive price with good margin",
-          attractive: isAr ? "تسعير نفسي جذاب للعملاء" : "Psychological pricing attractive to customers",
-          premium: isAr ? "تموضع راقي للعلامة التجارية" : "High-end brand positioning",
-        },
-      });
-    } catch {
-      // Fallback rule-based pricing
-      const trueCost = recipes.find(r => r.id === selected)!.true_cost;
-      setSuggestion({
-        min_safe: Math.round(trueCost * 1.1),
-        recommended: Math.round(trueCost * 1.45),
-        attractive: Math.round(trueCost * 1.35),
-        premium: Math.round(trueCost * 1.7),
-        explanations: {
-          min_safe: isAr ? `يغطي التكلفة الحقيقية + هامش 10%` : `Covers true cost + 10% margin`,
-          recommended: isAr ? "سعر تنافسي يحقق هامش ربح جيد" : "Competitive price with good margin",
-          attractive: isAr ? "تسعير نفسي جذاب للعملاء" : "Psychological pricing attractive to customers",
-          premium: isAr ? "تموضع راقي للعلامة التجارية" : "High-end brand positioning",
-        },
-      });
-    }
+    const trueCost = recipe.true_cost;
+    setSuggestion({
+      min_safe: Math.round(trueCost * 1.1),
+      recommended: Math.round(trueCost * 1.45),
+      attractive: Math.round(trueCost * 1.35),
+      premium: Math.round(trueCost * 1.7),
+      explanations: {
+        min_safe: isAr ? `يغطي التكلفة الحقيقية (${trueCost.toFixed(0)}) + هامش 10%` : `Covers true cost (${trueCost.toFixed(0)}) + 10% margin`,
+        recommended: isAr ? "سعر تنافسي يحقق هامش ربح جيد مع الحفاظ على تنافسية السوق" : "Competitive price with good margin and market positioning",
+        attractive: isAr ? "تسعير نفسي جذاب للعملاء — رقم مألوف" : "Psychological pricing — familiar number attractive to customers",
+        premium: isAr ? "تموضع راقي للعلامة التجارية — أعلى جودة مُدركة" : "High-end brand positioning — highest perceived quality",
+      },
+      confidence: {
+        min_safe: isAr ? "عالية" : "High",
+        recommended: isAr ? "عالية" : "High",
+        attractive: isAr ? "متوسطة" : "Medium",
+        premium: isAr ? "متوسطة" : "Medium",
+      },
+    });
     setGenerating(false);
   };
 
@@ -114,10 +101,10 @@ export default function PricingEngine() {
   const selectedRecipe = recipes.find(r => r.id === selected);
 
   const priceCards = suggestion ? [
-    { label: t("minSafePrice"), value: suggestion.min_safe, explanation: suggestion.explanations.min_safe, icon: Shield, color: "text-warning", bg: "bg-warning/10" },
-    { label: t("recommendedPrice"), value: suggestion.recommended, explanation: suggestion.explanations.recommended, icon: Target, color: "text-success", bg: "bg-success/10" },
-    { label: t("attractivePrice"), value: suggestion.attractive, explanation: suggestion.explanations.attractive, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
-    { label: t("premiumPrice"), value: suggestion.premium, explanation: suggestion.explanations.premium, icon: Crown, color: "text-primary", bg: "bg-primary/10" },
+    { label: t("minSafePrice"), value: suggestion.min_safe, explanation: suggestion.explanations.min_safe, confidence: suggestion.confidence.min_safe, icon: Shield, color: "text-warning", bg: "bg-warning/10" },
+    { label: t("recommendedPrice"), value: suggestion.recommended, explanation: suggestion.explanations.recommended, confidence: suggestion.confidence.recommended, icon: Target, color: "text-success", bg: "bg-success/10" },
+    { label: t("attractivePrice"), value: suggestion.attractive, explanation: suggestion.explanations.attractive, confidence: suggestion.confidence.attractive, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+    { label: t("premiumPrice"), value: suggestion.premium, explanation: suggestion.explanations.premium, confidence: suggestion.confidence.premium, icon: Crown, color: "text-primary", bg: "bg-primary/10" },
   ] : [];
 
   return (
@@ -125,7 +112,6 @@ export default function PricingEngine() {
       <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold">{t("pricingEngine")}</h1>
 
-        {/* Recipe Selector */}
         <Card className="shadow-card rounded-2xl">
           <CardContent className="pt-6 space-y-4">
             <div className="flex gap-4 items-end">
@@ -154,7 +140,6 @@ export default function PricingEngine() {
           </CardContent>
         </Card>
 
-        {/* Price Suggestions */}
         {suggestion && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {priceCards.map((card, i) => (
@@ -165,7 +150,10 @@ export default function PricingEngine() {
                       <card.icon className={`w-5 h-5 ${card.color}`} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">{card.label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground">{card.label}</p>
+                        <Badge variant="outline" className="text-[10px] px-1.5">{card.confidence}</Badge>
+                      </div>
                       <p className={`text-2xl font-extrabold ${card.color} mt-1`}>{card.value.toLocaleString()} {currency}</p>
                       <p className="text-xs text-muted-foreground mt-2">{card.explanation}</p>
                     </div>

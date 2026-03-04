@@ -1,10 +1,10 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Package, Users, Calculator, UtensilsCrossed,
-  Upload, Swords, BarChart3, Sparkles, AlertTriangle, ClipboardList,
-  Settings, LogOut, Menu, X, Bell, Globe, ChevronLeft, ChevronRight,
-  Lock, Crown, Building2, User
+  LayoutDashboard, Package, Calculator, UtensilsCrossed,
+  Upload, Sparkles, DollarSign, Gift,
+  Settings, LogOut, Menu, Bell, Globe, ChevronLeft, ChevronRight,
+  Building2, User, Database, Wallet, EyeOff
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
@@ -19,47 +19,37 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-// PlanTier imported from restaurant-context
-
 interface NavItem {
   path: string;
   labelKey: string;
   icon: any;
   minPlan?: PlanTier;
-  children?: { path: string; labelKey: string }[];
 }
 
 const navSections: { labelKey: string; items: NavItem[] }[] = [
   { labelKey: "", items: [
     { path: "/app/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
   ]},
-  { labelKey: "costManagement", items: [
-    { path: "/app/ingredients", labelKey: "ingredients", icon: Package },
-    { path: "/app/suppliers", labelKey: "suppliers", icon: Users },
-    { path: "/app/overhead", labelKey: "overhead", icon: Calculator },
+  { labelKey: "dataHub", items: [
+    { path: "/app/data-hub/ingredients", labelKey: "ingredients", icon: Package },
+    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload },
+    { path: "/app/data-hub/operating-costs", labelKey: "operatingCosts", icon: Calculator },
+    { path: "/app/data-hub/fixed-costs", labelKey: "fixedCosts", icon: Wallet },
+    { path: "/app/data-hub/hidden-costs", labelKey: "hiddenCosts", icon: EyeOff },
   ]},
-  { labelKey: "menu", items: [
-    { path: "/app/recipes", labelKey: "recipes", icon: UtensilsCrossed },
-    { path: "/app/sales/import", labelKey: "salesImport", icon: Upload, minPlan: "pro" },
+  { labelKey: "menuStudioSection", items: [
+    { path: "/app/menu-studio/recipes", labelKey: "menuStudio", icon: UtensilsCrossed },
   ]},
-  { labelKey: "competition", items: [
-    { path: "/app/competition/competitors", labelKey: "competitors", icon: Swords, minPlan: "pro" },
-    { path: "/app/competition/report", labelKey: "competitionReport", icon: BarChart3, minPlan: "pro" },
-  ]},
-  { labelKey: "intelligence", items: [
-    { path: "/app/recommendations", labelKey: "recommendations", icon: Sparkles, minPlan: "elite" },
-    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle, minPlan: "elite" },
-    { path: "/app/actions", labelKey: "actions", icon: ClipboardList },
-    { path: "/app/reports", labelKey: "reports", icon: BarChart3, minPlan: "pro" },
+  { labelKey: "intelligenceSection", items: [
+    { path: "/app/pricing-engine", labelKey: "pricingEngine", icon: DollarSign },
+    { path: "/app/promotion-studio/promotions", labelKey: "promotionStudio", icon: Gift },
   ]},
 ];
 
 const sectionLabels: Record<string, Record<string, string>> = {
-  ar: { costManagement: "إدارة التكاليف", menu: "القائمة", competition: "المنافسة", intelligence: "التحليلات" },
-  en: { costManagement: "Cost Management", menu: "Menu", competition: "Competition", intelligence: "Intelligence" },
+  ar: { dataHub: "مركز البيانات", menuStudioSection: "استوديو القائمة", intelligenceSection: "الذكاء" },
+  en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Intelligence" },
 };
-
-// Removed hardcoded plan constant
 
 function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
   if (!minPlan) return true;
@@ -69,19 +59,18 @@ function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const { t, lang } = useLanguage();
-  const { plan, restaurant } = useRestaurant();
+  const { plan } = useRestaurant();
 
   return (
     <div className="flex flex-col h-full">
       <div className={cn("p-4 border-b border-sidebar-border flex items-center gap-3", collapsed && "justify-center")}>
         <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-          <UtensilsCrossed className="w-4 h-4 text-primary-foreground" />
+          <Sparkles className="w-4 h-4 text-primary-foreground" />
         </div>
         {!collapsed && (
           <div>
-            <h1 className="text-sm font-bold text-sidebar-primary">MenuProfit</h1>
+            <h1 className="text-sm font-bold text-sidebar-primary">SMARTMENU</h1>
             <Badge variant="outline" className="mt-0.5 text-[10px] border-sidebar-primary/30 text-sidebar-primary px-1.5 py-0">
               {t(plan)}
             </Badge>
@@ -119,15 +108,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                     title={collapsed ? t(item.labelKey) : undefined}
                   >
                     <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1">{t(item.labelKey)}</span>
-                        {locked && <Lock className="w-3 h-3" />}
-                        {item.minPlan && !locked && (
-                          <span className="text-[10px] text-sidebar-primary/60 font-medium">{t(item.minPlan)}</span>
-                        )}
-                      </>
-                    )}
+                    {!collapsed && <span className="flex-1">{t(item.labelKey)}</span>}
                   </Link>
                 );
               })}
@@ -138,7 +119,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
       <div className="p-2 border-t border-sidebar-border">
         <Link
-          to="/app/settings/profile"
+          to="/app/settings"
           onClick={onNavigate}
           className={cn(
             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-all",
@@ -182,7 +163,7 @@ function TopBar({ onMenuClick, collapsed, onToggleSidebar }: { onMenuClick: () =
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="text-xs border-primary/30 text-primary hidden sm:inline-flex">
           <Building2 className="w-3 h-3 me-1" />
-          {restaurant?.name || "MenuProfit"}
+          {restaurant?.name || "SMARTMENU"}
         </Badge>
 
         <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
@@ -201,11 +182,8 @@ function TopBar({ onMenuClick, collapsed, onToggleSidebar }: { onMenuClick: () =
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={dir === "rtl" ? "start" : "end"} className="w-48">
-            <DropdownMenuItem onClick={() => navigate("/app/settings/profile")}>
-              <User className="w-4 h-4 me-2" />{t("profile")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/app/settings/restaurant")}>
-              <Building2 className="w-4 h-4 me-2" />{t("restaurant")}
+            <DropdownMenuItem onClick={() => navigate("/app/settings")}>
+              <Settings className="w-4 h-4 me-2" />{t("settings")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={async () => { await supabase.auth.signOut(); navigate("/auth/login"); }}>

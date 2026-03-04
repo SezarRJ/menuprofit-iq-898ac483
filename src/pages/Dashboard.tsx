@@ -6,16 +6,15 @@ import { useLanguage } from "@/lib/i18n";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   UtensilsCrossed, AlertTriangle, TrendingUp, Sparkles,
   DollarSign, Trash2, Gift, FileSpreadsheet, Check,
-  BarChart3, MessageCircle
+  ArrowLeft
 } from "lucide-react";
 
 export default function Dashboard() {
-  const { restaurant, plan } = useRestaurant();
+  const { restaurant } = useRestaurant();
   const { t, lang } = useLanguage();
   const isAr = lang === "ar";
   const [loading, setLoading] = useState(true);
@@ -27,23 +26,17 @@ export default function Dashboard() {
   const [promoCount, setPromoCount] = useState(0);
   const [topAction, setTopAction] = useState("");
 
-  useEffect(() => {
-    if (restaurant) loadDashboard();
-  }, [restaurant]);
+  useEffect(() => { if (restaurant) loadDashboard(); }, [restaurant]);
 
   const loadDashboard = async () => {
     if (!restaurant) return;
     setLoading(true);
 
     const [recipesRes, costsRes] = await Promise.all([
-      supabase
-        .from("recipes")
+      supabase.from("recipes")
         .select("id, name, selling_price, category, recipe_ingredients(quantity, ingredients(unit_price))")
         .eq("restaurant_id", restaurant.id),
-      supabase
-        .from("operating_costs")
-        .select("monthly_amount")
-        .eq("restaurant_id", restaurant.id),
+      supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant.id),
     ]);
 
     const recipes = recipesRes.data ?? [];
@@ -55,9 +48,7 @@ export default function Dashboard() {
 
     setTotalRecipes(recipes.length);
 
-    let priceChangeCount = 0;
-    let highCostCount = 0;
-    let removeableCount = 0;
+    let priceChangeCount = 0, highCostCount = 0, removeableCount = 0;
     const actions: string[] = [];
 
     recipes.forEach(r => {
@@ -95,8 +86,6 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const currency = restaurant?.default_currency === "USD" ? "$" : "د.ع";
-
   if (loading) {
     return (
       <AppLayout>
@@ -111,12 +100,12 @@ export default function Dashboard() {
   }
 
   const cards = [
-    { label: t("totalRecipes"), value: totalRecipes, icon: UtensilsCrossed, color: "text-success", bg: "bg-success/10", emoji: "✓" },
-    { label: t("priceChangesNeeded"), value: priceChanges, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", emoji: "⚠️" },
-    { label: t("highCostRecipes"), value: highCost, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", emoji: "🚨" },
-    { label: t("suggestedImprovements"), value: improvements, icon: Sparkles, color: "text-primary", bg: "bg-primary/10", emoji: "✨" },
-    { label: t("removeRecipes"), value: removeCount, icon: Trash2, color: "text-destructive", bg: "bg-destructive/10", emoji: "❌" },
-    { label: t("promoOpportunities"), value: promoCount, icon: Gift, color: "text-success", bg: "bg-success/10", emoji: "🎁" },
+    { label: t("totalRecipes"), value: totalRecipes, icon: UtensilsCrossed, color: "text-success", bg: "bg-success/10", link: "/app/menu-studio/recipes" },
+    { label: t("priceChangesNeeded"), value: priceChanges, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", link: "/app/pricing-engine" },
+    { label: t("highCostRecipes"), value: highCost, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", link: "/app/menu-studio/recipes" },
+    { label: t("suggestedImprovements"), value: improvements, icon: Sparkles, color: "text-primary", bg: "bg-primary/10", link: "/app/menu-studio/recipes" },
+    { label: t("removeRecipes"), value: removeCount, icon: Trash2, color: "text-destructive", bg: "bg-destructive/10", link: "/app/menu-studio/recipes" },
+    { label: t("promoOpportunities"), value: promoCount, icon: Gift, color: "text-success", bg: "bg-success/10", link: "/app/promotion-studio/promotions" },
   ];
 
   return (
@@ -124,22 +113,27 @@ export default function Dashboard() {
       <div className="space-y-6 animate-fade-in">
         <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
 
-        {/* Status Cards */}
+        {/* Decision Cards — each links to an action */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {cards.map((card, i) => (
-            <Card key={i} className="shadow-card rounded-2xl hover:shadow-card-hover transition-shadow">
-              <CardContent className="pt-6 pb-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{card.label}</p>
-                    <p className={`text-3xl font-extrabold ${card.color}`}>{card.value}</p>
+            <Link key={i} to={card.link}>
+              <Card className="shadow-card rounded-2xl hover:shadow-card-hover transition-shadow cursor-pointer group">
+                <CardContent className="pt-6 pb-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">{card.label}</p>
+                      <p className={`text-3xl font-extrabold ${card.color}`}>{card.value}</p>
+                    </div>
+                    <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center`}>
+                      <card.icon className={`w-5 h-5 ${card.color}`} />
+                    </div>
                   </div>
-                  <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center`}>
-                    <card.icon className={`w-5 h-5 ${card.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-[10px] text-muted-foreground/50 mt-2 flex items-center gap-1 group-hover:text-primary transition-colors">
+                    <ArrowLeft className="w-3 h-3" />{isAr ? "اضغط للتفاصيل" : "View details"}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
@@ -158,28 +152,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Import Sales Button */}
+        {/* Import Sales */}
         <Button size="lg" className="w-full rounded-2xl h-14 text-base gradient-primary border-0" asChild>
           <Link to="/app/data-hub/sales">
             <FileSpreadsheet className="w-5 h-5 me-2" />
             {isAr ? "استيراد مبيعات اليوم" : "Import Today's Sales"}
           </Link>
         </Button>
-
-        {/* Performance Trends Placeholder */}
-        <Card className="shadow-card rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              {isAr ? "اتجاهات الأداء" : "Performance Trends"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-32 flex items-center justify-center text-muted-foreground text-sm bg-muted/30 rounded-xl">
-              {isAr ? "الرسوم البيانية ستظهر هنا بعد استيراد المبيعات" : "Charts will appear after importing sales data"}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Quick Actions */}
         <Card className="shadow-card rounded-2xl">
