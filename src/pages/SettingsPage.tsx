@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Save, Building2, Crown, Bell, Globe, Shield } from "lucide-react";
+import { User, Save, Building2, Crown, Bell, Globe, MapPin, ChefHat } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -22,20 +22,19 @@ export default function SettingsPage() {
   const [restName, setRestName] = useState(restaurant?.name || "");
   const [currency, setCurrency] = useState(restaurant?.default_currency || "IQD");
   const [targetMargin, setTargetMargin] = useState(String(restaurant?.target_margin_pct || 45));
+  const [city, setCity] = useState(restaurant?.city || "الموصل");
   const [saving, setSaving] = useState(false);
 
   const handleSaveRestaurant = async () => {
     if (!restaurant) return;
     setSaving(true);
     const { error } = await supabase.from("restaurants").update({
-      name: restName, default_currency: currency, target_margin_pct: Number(targetMargin),
+      name: restName, default_currency: currency, target_margin_pct: Number(targetMargin), city,
     }).eq("id", restaurant.id);
     if (error) toast.error(error.message);
     else { toast.success(isAr ? "تم الحفظ" : "Saved"); refreshRestaurant(); }
     setSaving(false);
   };
-
-  const currencyLabel = currency === "USD" ? "$" : "د.ع";
 
   return (
     <AppLayout>
@@ -50,7 +49,6 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="restaurant" className="space-y-4 mt-4">
-            {/* Plan */}
             <Card className="rounded-2xl shadow-card">
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Crown className="w-4 h-4 text-primary" />{isAr ? "الخطة الحالية" : "Current Plan"}</CardTitle></CardHeader>
               <CardContent>
@@ -64,11 +62,22 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Restaurant Info */}
             <Card className="rounded-2xl shadow-card">
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Building2 className="w-4 h-4" />{isAr ? "معلومات المطعم" : "Restaurant Info"}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div><label className="text-sm font-medium mb-1 block">{isAr ? "اسم المطعم" : "Restaurant Name"}</label><Input value={restName} onChange={e => setRestName(e.target.value)} /></div>
+                <div><label className="text-sm font-medium mb-1 block">{isAr ? "المدينة" : "City"}</label>
+                  <Select value={city} onValueChange={setCity}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="الموصل">الموصل</SelectItem>
+                      <SelectItem value="بغداد">بغداد</SelectItem>
+                      <SelectItem value="أربيل">أربيل</SelectItem>
+                      <SelectItem value="البصرة">البصرة</SelectItem>
+                      <SelectItem value="other">{isAr ? "أخرى" : "Other"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div><label className="text-sm font-medium mb-1 block">{isAr ? "العملة" : "Currency"}</label>
                   <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
@@ -114,8 +123,9 @@ export default function SettingsPage() {
                 {[
                   isAr ? "تنبيهات ارتفاع أسعار المكونات" : "Ingredient price spike alerts",
                   isAr ? "تحديثات التسعير اليومية" : "Daily pricing updates",
-                  isAr ? "تقارير الأداء الأسبوعية" : "Weekly performance reports",
+                  isAr ? "تقارير أداء القائمة الأسبوعية" : "Weekly menu performance reports",
                   isAr ? "عروض ترويجية مقترحة" : "Suggested promotions",
+                  isAr ? "تنبيهات وصفات خاسرة" : "Loss-maker recipe alerts",
                 ].map((label, i) => (
                   <div key={i} className="flex items-center justify-between"><span className="text-sm">{label}</span><Switch defaultChecked={i < 2} /></div>
                 ))}
