@@ -305,6 +305,127 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          ingredient_id: string
+          last_restock_date: string | null
+          max_stock_level: number
+          min_stock_level: number
+          restaurant_id: string
+          unit: string
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          ingredient_id: string
+          last_restock_date?: string | null
+          max_stock_level?: number
+          min_stock_level?: number
+          restaurant_id: string
+          unit?: string
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          ingredient_id?: string
+          last_restock_date?: string | null
+          max_stock_level?: number
+          min_stock_level?: number
+          restaurant_id?: string
+          unit?: string
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          notes: string
+          quantity: number
+          reason: string
+          restaurant_id: string
+          supplier_id: string | null
+          total_cost: number
+          transaction_date: string
+          type: string
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          notes?: string
+          quantity?: number
+          reason?: string
+          restaurant_id: string
+          supplier_id?: string | null
+          total_cost?: number
+          transaction_date?: string
+          type?: string
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          notes?: string
+          quantity?: number
+          reason?: string
+          restaurant_id?: string
+          supplier_id?: string | null
+          total_cost?: number
+          transaction_date?: string
+          type?: string
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_transactions: {
         Row: {
           created_at: string
@@ -797,6 +918,125 @@ export type Database = {
           },
         ]
       }
+      supplier_products: {
+        Row: {
+          created_at: string
+          discount_pct: number
+          id: string
+          ingredient_id: string
+          is_preferred: boolean
+          last_purchase_date: string | null
+          lead_time_days: number
+          min_order_qty: number
+          price: number
+          quality_rating: number
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          ingredient_id: string
+          is_preferred?: boolean
+          last_purchase_date?: string | null
+          lead_time_days?: number
+          min_order_qty?: number
+          price?: number
+          quality_rating?: number
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          ingredient_id?: string
+          is_preferred?: boolean
+          last_purchase_date?: string | null
+          lead_time_days?: number
+          min_order_qty?: number
+          price?: number
+          quality_rating?: number
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string
+          availability_score: number
+          contact_person: string
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string
+          notes: string
+          payment_terms: string
+          phone: string
+          price_score: number
+          quality_score: number
+          restaurant_id: string
+        }
+        Insert: {
+          address?: string
+          availability_score?: number
+          contact_person?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          notes?: string
+          payment_terms?: string
+          phone?: string
+          price_score?: number
+          quality_score?: number
+          restaurant_id: string
+        }
+        Update: {
+          address?: string
+          availability_score?: number
+          contact_person?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string
+          notes?: string
+          payment_terms?: string
+          phone?: string
+          price_score?: number
+          quality_score?: number
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -888,6 +1128,7 @@ export type Database = {
         Returns: boolean
       }
       is_sales_import_owner: { Args: { _import_id: string }; Returns: boolean }
+      is_supplier_owner: { Args: { _supplier_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
