@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, Calculator, UtensilsCrossed,
   Upload, Sparkles, DollarSign, Gift,
   Settings, LogOut, Menu, Bell, Globe, ChevronLeft, ChevronRight,
-  Building2, User, Database, Wallet, EyeOff
+  Building2, User, Database, Wallet, EyeOff, Truck, Warehouse
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
@@ -44,11 +44,15 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
     { path: "/app/pricing-engine", labelKey: "pricingEngine", icon: DollarSign },
     { path: "/app/promotion-studio/promotions", labelKey: "promotionStudio", icon: Gift },
   ]},
+  { labelKey: "operationsSection", items: [
+    { path: "/app/suppliers", labelKey: "suppliers", icon: Truck },
+    { path: "/app/inventory", labelKey: "inventory", icon: Warehouse },
+  ]},
 ];
 
 const sectionLabels: Record<string, Record<string, string>> = {
-  ar: { dataHub: "مركز البيانات", menuStudioSection: "استوديو القائمة", intelligenceSection: "الذكاء" },
-  en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Intelligence" },
+  ar: { dataHub: "مركز البيانات", menuStudioSection: "استوديو القائمة", intelligenceSection: "الذكاء", operationsSection: "العمليات" },
+  en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Intelligence", operationsSection: "Operations" },
 };
 
 function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {

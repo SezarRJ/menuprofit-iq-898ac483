@@ -23,6 +23,8 @@ import PricingEngine from "./pages/PricingEngine";
 import PromotionStudio from "./pages/PromotionStudio";
 import LoyaltyProgram from "./pages/LoyaltyProgram";
 import SettingsPage from "./pages/SettingsPage";
+import SuppliersPage from "./pages/SuppliersPage";
+import InventoryPage from "./pages/InventoryPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +69,10 @@ const App = () => (
 
               {/* Settings */}
               <Route path="/app/settings" element={<SettingsPage />} />
+
+              {/* Suppliers & Inventory */}
+              <Route path="/app/suppliers" element={<SuppliersPage />} />
+              <Route path="/app/inventory" element={<InventoryPage />} />
 
               {/* Legacy redirects */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />

@@ -106,6 +106,7 @@ const t_ar: Record<string, string> = {
   points: "نقاط",
   customers: "العملاء",
   aiChat: "المساعد الذكي",
+  inventory: "المخزون",
 };
 
 const t_en: Record<string, string> = {
@@ -211,6 +212,7 @@ const t_en: Record<string, string> = {
   points: "Points",
   customers: "Customers",
   aiChat: "AI Assistant",
+  inventory: "Inventory",
 };
 
 const translations: Record<Language, Record<string, string>> = { ar: t_ar, en: t_en };
