@@ -31,7 +31,7 @@ export default function PricingEngine() {
   const [generating, setGenerating] = useState(false);
   const [suggestion, setSuggestion] = useState<PriceSuggestion | null>(null);
 
-  useEffect(() => { if (restaurant) load(); }, [restaurant]);
+  useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);

@@ -34,7 +34,7 @@ export default function DataHubIngredients() {
   const [unit, setUnit] = useState("كغم");
   const [price, setPrice] = useState("");
 
-  useEffect(() => { if (restaurant) load(); }, [restaurant]);
+  useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);

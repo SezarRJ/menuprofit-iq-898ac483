@@ -32,7 +32,7 @@ export default function MenuStudioRecipes() {
   const [filterCat, setFilterCat] = useState("الكل");
   const [filterStrength, setFilterStrength] = useState("all");
 
-  useEffect(() => { if (restaurant) load(); }, [restaurant]);
+  useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);

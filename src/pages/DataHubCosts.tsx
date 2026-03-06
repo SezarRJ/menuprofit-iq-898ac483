@@ -29,7 +29,7 @@ export default function DataHubCosts({ costType }: { costType: "operating" | "fi
   const tableName = costType === "operating" ? "operating_costs" : costType === "fixed" ? "fixed_costs" : "hidden_costs";
   const pageTitle = costType === "operating" ? t("operatingCosts") : costType === "fixed" ? t("fixedCosts") : t("hiddenCosts");
 
-  useEffect(() => { if (restaurant) load(); }, [restaurant, costType]);
+  useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant, costType]);
 
   const load = async () => {
     setLoading(true);
