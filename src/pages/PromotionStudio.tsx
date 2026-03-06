@@ -33,7 +33,7 @@ export default function PromotionStudio() {
   const [type, setType] = useState("bundle");
   const [price, setPrice] = useState("");
 
-  useEffect(() => { if (restaurant) load(); }, [restaurant]);
+  useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);

@@ -98,7 +98,7 @@ export default function InventoryPage() {
   const [txSupplier, setTxSupplier] = useState("");
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
 
-  useEffect(() => { if (restaurant) loadAll(); }, [restaurant]);
+  useEffect(() => { if (restaurant) loadAll(); else setLoading(false); }, [restaurant]);
 
   const loadAll = async () => {
     setLoading(true);

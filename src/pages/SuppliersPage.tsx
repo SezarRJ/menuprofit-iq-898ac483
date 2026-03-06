@@ -86,7 +86,7 @@ export default function SuppliersPage() {
   const [pDiscount, setPDiscount] = useState(0);
   const [pPreferred, setPPreferred] = useState(false);
 
-  useEffect(() => { if (restaurant) loadAll(); }, [restaurant]);
+  useEffect(() => { if (restaurant) loadAll(); else setLoading(false); }, [restaurant]);
 
   const loadAll = async () => {
     setLoading(true);
