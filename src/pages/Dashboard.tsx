@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [promoCount, setPromoCount] = useState(0);
   const [topAction, setTopAction] = useState("");
 
-  useEffect(() => { if (restaurant) loadDashboard(); }, [restaurant]);
+  useEffect(() => { if (restaurant) loadDashboard(); else setLoading(false); }, [restaurant]);
 
   const loadDashboard = async () => {
     if (!restaurant) return;
