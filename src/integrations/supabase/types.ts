@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions: {
+        Row: {
+          assignee: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string
+          priority: string
+          recommendation_id: string | null
+          restaurant_id: string
+          status: string
+          title: string
+          type: string
+        }
+        Insert: {
+          assignee?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string
+          priority?: string
+          recommendation_id?: string | null
+          restaurant_id: string
+          status?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          assignee?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string
+          priority?: string
+          recommendation_id?: string | null
+          restaurant_id?: string
+          status?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_access_logs: {
         Row: {
           action_type: string
@@ -43,6 +100,53 @@ export type Database = {
           reason?: string | null
         }
         Relationships: []
+      }
+      ai_recommendations: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          impact: string
+          reasoning: string
+          restaurant_id: string
+          status: string
+          target_item: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          impact?: string
+          reasoning?: string
+          restaurant_id: string
+          status?: string
+          target_item?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          impact?: string
+          reasoning?: string
+          restaurant_id?: string
+          status?: string
+          target_item?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_recommendations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_usage_logs: {
         Row: {
@@ -146,6 +250,44 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          created_at: string
+          id: string
+          location: string
+          name: string
+          notes: string
+          restaurant_id: string
+          tier: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string
+          name: string
+          notes?: string
+          restaurant_id: string
+          tier?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          notes?: string
+          restaurant_id?: string
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitors_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -270,30 +412,94 @@ export type Database = {
           },
         ]
       }
+      ingredient_price_history: {
+        Row: {
+          created_at: string
+          effective_date: string
+          id: string
+          ingredient_id: string
+          price: number
+          restaurant_id: string
+          supplier_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          ingredient_id: string
+          price?: number
+          restaurant_id: string
+          supplier_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          ingredient_id?: string
+          price?: number
+          restaurant_id?: string
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_price_history_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_price_history_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_price_history_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
+          alert_threshold: number
           created_at: string
           id: string
           name: string
           restaurant_id: string
+          supplier_id: string | null
           unit: string
           unit_price: number
+          waste_pct: number
+          yield_pct: number
         }
         Insert: {
+          alert_threshold?: number
           created_at?: string
           id?: string
           name: string
           restaurant_id: string
+          supplier_id?: string | null
           unit?: string
           unit_price?: number
+          waste_pct?: number
+          yield_pct?: number
         }
         Update: {
+          alert_threshold?: number
           created_at?: string
           id?: string
           name?: string
           restaurant_id?: string
+          supplier_id?: string | null
           unit?: string
           unit_price?: number
+          waste_pct?: number
+          yield_pct?: number
         }
         Relationships: [
           {
@@ -301,6 +507,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -422,6 +635,44 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_profiles: {
+        Row: {
+          created_at: string
+          energy_cost: number
+          equipment_cost: number
+          id: string
+          labor_cost: number
+          profile_type: string
+          restaurant_id: string
+        }
+        Insert: {
+          created_at?: string
+          energy_cost?: number
+          equipment_cost?: number
+          id?: string
+          labor_cost?: number
+          profile_type?: string
+          restaurant_id: string
+        }
+        Update: {
+          created_at?: string
+          energy_cost?: number
+          equipment_cost?: number
+          id?: string
+          labor_cost?: number
+          profile_type?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_profiles_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -701,27 +952,39 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          is_protected: boolean
+          kitchen_profile: string
           name: string
+          packaging_channel: string
           restaurant_id: string
           selling_price: number
+          target_margin_pct: number | null
           updated_at: string
         }
         Insert: {
           category?: string
           created_at?: string
           id?: string
+          is_protected?: boolean
+          kitchen_profile?: string
           name: string
+          packaging_channel?: string
           restaurant_id: string
           selling_price?: number
+          target_margin_pct?: number | null
           updated_at?: string
         }
         Update: {
           category?: string
           created_at?: string
           id?: string
+          is_protected?: boolean
+          kitchen_profile?: string
           name?: string
+          packaging_channel?: string
           restaurant_id?: string
           selling_price?: number
+          target_margin_pct?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -740,33 +1003,54 @@ export type Database = {
           city: string
           created_at: string
           default_currency: string
+          default_kitchen_profile: string
           id: string
+          min_margin_floor: number
+          monthly_waste_budget: number
           name: string
           owner_id: string
+          packaging_delivery: number
+          packaging_dinein: number
+          packaging_takeaway: number
           target_margin_pct: number
           updated_at: string
+          washing_per_plate: number
         }
         Insert: {
           baseline_plates?: number
           city?: string
           created_at?: string
           default_currency?: string
+          default_kitchen_profile?: string
           id?: string
+          min_margin_floor?: number
+          monthly_waste_budget?: number
           name: string
           owner_id: string
+          packaging_delivery?: number
+          packaging_dinein?: number
+          packaging_takeaway?: number
           target_margin_pct?: number
           updated_at?: string
+          washing_per_plate?: number
         }
         Update: {
           baseline_plates?: number
           city?: string
           created_at?: string
           default_currency?: string
+          default_kitchen_profile?: string
           id?: string
+          min_margin_floor?: number
+          monthly_waste_budget?: number
           name?: string
           owner_id?: string
+          packaging_delivery?: number
+          packaging_dinein?: number
+          packaging_takeaway?: number
           target_margin_pct?: number
           updated_at?: string
+          washing_per_plate?: number
         }
         Relationships: []
       }
