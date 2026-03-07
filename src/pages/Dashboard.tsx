@@ -7,10 +7,11 @@ import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
-  UtensilsCrossed, AlertTriangle, TrendingUp, Sparkles,
-  DollarSign, Trash2, Gift, FileSpreadsheet, Check,
-  ArrowLeft
+  UtensilsCrossed, AlertTriangle, TrendingDown, Sparkles,
+  DollarSign, Calculator, Swords, Brain,
+  FileSpreadsheet, Check, ArrowLeft, Package, Gift
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -18,13 +19,15 @@ export default function Dashboard() {
   const { t, lang } = useLanguage();
   const isAr = lang === "ar";
   const [loading, setLoading] = useState(true);
-  const [totalRecipes, setTotalRecipes] = useState(0);
-  const [priceChanges, setPriceChanges] = useState(0);
-  const [highCost, setHighCost] = useState(0);
-  const [improvements, setImprovements] = useState(0);
-  const [removeCount, setRemoveCount] = useState(0);
-  const [promoCount, setPromoCount] = useState(0);
-  const [topAction, setTopAction] = useState("");
+  const [stats, setStats] = useState({
+    totalRecipes: 0,
+    belowTarget: 0,
+    overheadPerPlate: 0,
+    ingredientAlerts: 0,
+    competitionGaps: 0,
+    aiRecommendations: 0,
+  });
+  const [topActions, setTopActions] = useState<string[]>([]);
 
   useEffect(() => { if (restaurant) loadDashboard(); else setLoading(false); }, [restaurant]);
 
@@ -32,59 +35,63 @@ export default function Dashboard() {
     if (!restaurant) return;
     setLoading(true);
 
-    const [recipesRes, costsRes] = await Promise.all([
+    const [recipesRes, costsRes, recsRes, compRes] = await Promise.all([
       supabase.from("recipes")
         .select("id, name, selling_price, category, recipe_ingredients(quantity, ingredients(unit_price))")
         .eq("restaurant_id", restaurant.id),
       supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant.id),
+      supabase.from("ai_recommendations").select("id").eq("restaurant_id", restaurant.id).eq("status", "new"),
+      supabase.from("competitor_prices").select("id, recipe_id, price, recipes!inner(selling_price, restaurant_id)")
+        .eq("recipes.restaurant_id", restaurant.id),
     ]);
 
     const recipes = recipesRes.data ?? [];
     const costs = costsRes.data ?? [];
     const totalOp = costs.reduce((s, c) => s + Number(c.monthly_amount), 0);
-    const numRecipes = recipes.length || 1;
-    const overhead = totalOp / numRecipes;
+    const baseline = (restaurant as any).baseline_plates || 6000;
+    const overheadPerPlate = baseline > 0 ? totalOp / baseline : 0;
     const targetMargin = restaurant.target_margin_pct;
 
-    setTotalRecipes(recipes.length);
-
-    let priceChangeCount = 0, highCostCount = 0, removeableCount = 0;
+    let belowCount = 0;
     const actions: string[] = [];
 
     recipes.forEach(r => {
       const ingCost = r.recipe_ingredients?.reduce(
         (s: number, ri: any) => s + Number(ri.quantity) * Number(ri.ingredients?.unit_price ?? 0), 0
       ) ?? 0;
-      const trueCost = ingCost + overhead;
+      const trueCost = ingCost + overheadPerPlate;
       const sp = Number(r.selling_price);
       const margin = sp > 0 ? ((sp - trueCost) / sp) * 100 : -100;
 
-      if (margin < targetMargin && margin >= 0) {
-        priceChangeCount++;
-        actions.push(isAr ? `عدّل سعر ${r.name}` : `Adjust ${r.name} price`);
-      }
-      if (margin < 10 && margin >= 0) highCostCount++;
-      if (margin < 0) {
-        removeableCount++;
-        actions.push(isAr ? `راجع ${r.name} — خسارة` : `Review ${r.name} — loss maker`);
+      if (margin < targetMargin) {
+        belowCount++;
+        if (actions.length < 3) {
+          actions.push(isAr ? `راجع سعر ${r.name} (هامش ${margin.toFixed(0)}%)` : `Review ${r.name} price (${margin.toFixed(0)}% margin)`);
+        }
       }
     });
 
-    setPriceChanges(priceChangeCount);
-    setHighCost(highCostCount);
-    setRemoveCount(removeableCount);
-    setImprovements(Math.max(priceChangeCount + highCostCount, 0));
-    setPromoCount(Math.min(recipes.filter(r => {
-      const ingCost = r.recipe_ingredients?.reduce(
-        (s: number, ri: any) => s + Number(ri.quantity) * Number(ri.ingredients?.unit_price ?? 0), 0
-      ) ?? 0;
-      const margin = Number(r.selling_price) > 0 ? ((Number(r.selling_price) - ingCost - overhead) / Number(r.selling_price)) * 100 : 0;
-      return margin > 50;
-    }).length, 10));
+    // Count competition mispricing
+    let gapCount = 0;
+    (compRes.data ?? []).forEach((cp: any) => {
+      const sp = Number(cp.recipes?.selling_price ?? 0);
+      const compPrice = Number(cp.price);
+      if (sp > 0 && Math.abs(sp - compPrice) / sp > 0.15) gapCount++;
+    });
 
-    setTopAction(actions.slice(0, 2).join(" + ") || (isAr ? "لا توجد إجراءات عاجلة" : "No urgent actions"));
+    setStats({
+      totalRecipes: recipes.length,
+      belowTarget: belowCount,
+      overheadPerPlate: Math.round(overheadPerPlate),
+      ingredientAlerts: 0, // Will be populated with price history alerts
+      competitionGaps: gapCount,
+      aiRecommendations: recsRes.data?.length ?? 0,
+    });
+    setTopActions(actions.length > 0 ? actions : [isAr ? "لا توجد إجراءات عاجلة" : "No urgent actions"]);
     setLoading(false);
   };
+
+  const currency = restaurant?.default_currency === "USD" ? "$" : "د.ع";
 
   if (loading) {
     return (
@@ -100,20 +107,23 @@ export default function Dashboard() {
   }
 
   const cards = [
-    { label: t("totalRecipes"), value: totalRecipes, icon: UtensilsCrossed, color: "text-success", bg: "bg-success/10", link: "/app/menu-studio/recipes" },
-    { label: t("priceChangesNeeded"), value: priceChanges, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", link: "/app/pricing-engine" },
-    { label: t("highCostRecipes"), value: highCost, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", link: "/app/menu-studio/recipes" },
-    { label: t("suggestedImprovements"), value: improvements, icon: Sparkles, color: "text-primary", bg: "bg-primary/10", link: "/app/menu-studio/recipes" },
-    { label: t("removeRecipes"), value: removeCount, icon: Trash2, color: "text-destructive", bg: "bg-destructive/10", link: "/app/menu-studio/recipes" },
-    { label: t("promoOpportunities"), value: promoCount, icon: Gift, color: "text-success", bg: "bg-success/10", link: "/app/promotion-studio/promotions" },
+    { label: t("totalRecipes"), value: stats.totalRecipes, icon: UtensilsCrossed, color: "text-success", bg: "bg-success/10", link: "/app/menu-studio/recipes" },
+    { label: t("recipesBelow"), value: stats.belowTarget, icon: TrendingDown, color: stats.belowTarget > 0 ? "text-destructive" : "text-success", bg: stats.belowTarget > 0 ? "bg-destructive/10" : "bg-success/10", link: "/app/menu-studio/recipes" },
+    { label: t("overheadPerPlate"), value: `${stats.overheadPerPlate.toLocaleString()} ${currency}`, icon: Calculator, color: "text-primary", bg: "bg-primary/10", link: "/app/data-hub/overhead" },
+    { label: t("competitionGaps"), value: stats.competitionGaps, icon: Swords, color: stats.competitionGaps > 0 ? "text-warning" : "text-success", bg: stats.competitionGaps > 0 ? "bg-warning/10" : "bg-success/10", link: "/app/competition" },
+    { label: t("aiRecommendations"), value: stats.aiRecommendations, icon: Brain, color: "text-primary", bg: "bg-primary/10", link: "/app/ai-recommendations" },
+    { label: t("promoOpportunities"), value: stats.belowTarget > 0 ? Math.max(stats.totalRecipes - stats.belowTarget, 0) : stats.totalRecipes, icon: Gift, color: "text-success", bg: "bg-success/10", link: "/app/promotion-studio" },
   ];
 
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
-        <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
+        <div>
+          <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{isAr ? "مركز القرارات التشغيلية" : "Operational Decision Center"}</p>
+        </div>
 
-        {/* Decision Cards — each links to an action */}
+        {/* Decision Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {cards.map((card, i) => (
             <Link key={i} to={card.link}>
@@ -140,25 +150,21 @@ export default function Dashboard() {
         {/* Top Actions Today */}
         <Card className="shadow-card rounded-2xl border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("topActionsToday")}</p>
-                <p className="font-semibold text-base mt-0.5">"{topAction}"</p>
+                <p className="text-sm text-muted-foreground mb-2">{t("topActionsToday")}</p>
+                <div className="space-y-1">
+                  {topActions.map((a, i) => (
+                    <p key={i} className="text-sm font-medium">• {a}</p>
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Import Sales */}
-        <Button size="lg" className="w-full rounded-2xl h-14 text-base gradient-primary border-0" asChild>
-          <Link to="/app/data-hub/sales">
-            <FileSpreadsheet className="w-5 h-5 me-2" />
-            {isAr ? "استيراد مبيعات اليوم" : "Import Today's Sales"}
-          </Link>
-        </Button>
 
         {/* Quick Actions */}
         <Card className="shadow-card rounded-2xl">
@@ -168,7 +174,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="sm" className="rounded-xl">
-                <Link to="/app/data-hub/ingredients"><Check className="w-4 h-4 me-2" />{t("addIngredient")}</Link>
+                <Link to="/app/data-hub/ingredients?add=1"><Package className="w-4 h-4 me-2" />{t("addIngredient")}</Link>
               </Button>
               <Button asChild variant="outline" size="sm" className="rounded-xl">
                 <Link to="/app/data-hub/ingredients/import"><FileSpreadsheet className="w-4 h-4 me-2" />{t("importIngredients")}</Link>

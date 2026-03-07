@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Package, Calculator, UtensilsCrossed,
   Upload, Sparkles, DollarSign, Gift,
   Settings, LogOut, Menu, Bell, Globe, ChevronLeft, ChevronRight,
-  Building2, User, Database, Wallet, EyeOff, Truck, Warehouse
+  Building2, User, Truck, Swords, Brain, ClipboardList,
+  AlertTriangle, FileText
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
@@ -32,27 +33,29 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
   ]},
   { labelKey: "dataHub", items: [
     { path: "/app/data-hub/ingredients", labelKey: "ingredients", icon: Package },
-    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload },
-    { path: "/app/data-hub/operating-costs", labelKey: "operatingCosts", icon: Calculator },
-    { path: "/app/data-hub/fixed-costs", labelKey: "fixedCosts", icon: Wallet },
-    { path: "/app/data-hub/hidden-costs", labelKey: "hiddenCosts", icon: EyeOff },
+    { path: "/app/data-hub/suppliers", labelKey: "suppliers", icon: Truck },
+    { path: "/app/data-hub/overhead", labelKey: "overhead", icon: Calculator },
+    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload, minPlan: "pro" },
   ]},
   { labelKey: "menuStudioSection", items: [
     { path: "/app/menu-studio/recipes", labelKey: "menuStudio", icon: UtensilsCrossed },
   ]},
   { labelKey: "intelligenceSection", items: [
     { path: "/app/pricing-engine", labelKey: "pricingEngine", icon: DollarSign },
-    { path: "/app/promotion-studio/promotions", labelKey: "promotionStudio", icon: Gift },
+    { path: "/app/promotion-studio", labelKey: "promotionStudio", icon: Gift },
+    { path: "/app/competition", labelKey: "competition", icon: Swords, minPlan: "pro" },
   ]},
-  { labelKey: "operationsSection", items: [
-    { path: "/app/suppliers", labelKey: "suppliers", icon: Truck },
-    { path: "/app/inventory", labelKey: "inventory", icon: Warehouse },
+  { labelKey: "insightsSection", items: [
+    { path: "/app/ai-recommendations", labelKey: "aiRecommendations", icon: Brain, minPlan: "pro" },
+    { path: "/app/actions", labelKey: "actions", icon: ClipboardList },
+    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle, minPlan: "elite" },
+    { path: "/app/reports", labelKey: "reports", icon: FileText, minPlan: "pro" },
   ]},
 ];
 
 const sectionLabels: Record<string, Record<string, string>> = {
-  ar: { dataHub: "مركز البيانات", menuStudioSection: "استوديو القائمة", intelligenceSection: "الذكاء", operationsSection: "العمليات" },
-  en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Intelligence", operationsSection: "Operations" },
+  ar: { dataHub: "مركز البيانات", menuStudioSection: "استوديو القائمة", intelligenceSection: "المحركات الذكية", insightsSection: "الرؤى والتحليل" },
+  en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Smart Engines", insightsSection: "Insights & Analysis" },
 };
 
 function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
@@ -75,9 +78,9 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         {!collapsed && (
           <div>
             <h1 className="text-sm font-bold text-sidebar-primary">SMARTMENU</h1>
-            <Badge variant="outline" className="mt-0.5 text-[10px] border-sidebar-primary/30 text-sidebar-primary px-1.5 py-0">
-              {t(plan)}
-            </Badge>
+            <p className="text-[9px] text-sidebar-foreground/40 leading-tight">
+              {lang === "ar" ? "نظام تحسين أرباح المطاعم" : "Restaurant Profit Optimization"}
+            </p>
           </div>
         )}
       </div>
@@ -113,6 +116,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   >
                     <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
                     {!collapsed && <span className="flex-1">{t(item.labelKey)}</span>}
+                    {!collapsed && locked && (
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 border-sidebar-foreground/20 text-sidebar-foreground/30">
+                        {t(item.minPlan || "pro")}
+                      </Badge>
+                    )}
                   </Link>
                 );
               })}

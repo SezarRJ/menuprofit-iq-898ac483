@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/lib/restaurant-context";
 import { useLanguage } from "@/lib/i18n";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Save, Building2, Crown, Bell, Globe, MapPin, ChefHat } from "lucide-react";
+import { User, Save, Building2, Crown, Bell, Flame, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -23,18 +23,77 @@ export default function SettingsPage() {
   const [currency, setCurrency] = useState(restaurant?.default_currency || "IQD");
   const [targetMargin, setTargetMargin] = useState(String(restaurant?.target_margin_pct || 45));
   const [city, setCity] = useState(restaurant?.city || "الموصل");
+  const [minMarginFloor, setMinMarginFloor] = useState(String((restaurant as any)?.min_margin_floor || 20));
+  const [baselinePlates, setBaselinePlates] = useState(String((restaurant as any)?.baseline_plates || 6000));
   const [saving, setSaving] = useState(false);
+
+  // Kitchen Cost Engine settings
+  const [packDinein, setPackDinein] = useState(String((restaurant as any)?.packaging_dinein || 0));
+  const [packTakeaway, setPackTakeaway] = useState(String((restaurant as any)?.packaging_takeaway || 500));
+  const [packDelivery, setPackDelivery] = useState(String((restaurant as any)?.packaging_delivery || 1000));
+  const [washingPerPlate, setWashingPerPlate] = useState(String((restaurant as any)?.washing_per_plate || 200));
+  const [monthlyWaste, setMonthlyWaste] = useState(String((restaurant as any)?.monthly_waste_budget || 0));
+
+  // Kitchen profiles
+  const [profiles, setProfiles] = useState({
+    light: { energy: 200, labor: 300, equipment: 100 },
+    medium: { energy: 500, labor: 600, equipment: 250 },
+    heavy: { energy: 1000, labor: 1000, equipment: 500 },
+  });
+
+  useEffect(() => {
+    if (restaurant) loadProfiles();
+  }, [restaurant]);
+
+  const loadProfiles = async () => {
+    const { data } = await supabase.from("kitchen_profiles").select("*").eq("restaurant_id", restaurant!.id);
+    if (data && data.length > 0) {
+      const p = { ...profiles };
+      data.forEach((d: any) => {
+        if (p[d.profile_type as keyof typeof p]) {
+          p[d.profile_type as keyof typeof p] = { energy: Number(d.energy_cost), labor: Number(d.labor_cost), equipment: Number(d.equipment_cost) };
+        }
+      });
+      setProfiles(p);
+    }
+  };
 
   const handleSaveRestaurant = async () => {
     if (!restaurant) return;
     setSaving(true);
     const { error } = await supabase.from("restaurants").update({
-      name: restName, default_currency: currency, target_margin_pct: Number(targetMargin), city,
-    }).eq("id", restaurant.id);
+      name: restName, default_currency: currency,
+      target_margin_pct: Number(targetMargin), city,
+      min_margin_floor: Number(minMarginFloor),
+      baseline_plates: Number(baselinePlates),
+      packaging_dinein: Number(packDinein),
+      packaging_takeaway: Number(packTakeaway),
+      packaging_delivery: Number(packDelivery),
+      washing_per_plate: Number(washingPerPlate),
+      monthly_waste_budget: Number(monthlyWaste),
+    } as any).eq("id", restaurant.id);
     if (error) toast.error(error.message);
     else { toast.success(isAr ? "تم الحفظ" : "Saved"); refreshRestaurant(); }
     setSaving(false);
   };
+
+  const handleSaveProfiles = async () => {
+    if (!restaurant) return;
+    setSaving(true);
+    for (const [key, val] of Object.entries(profiles)) {
+      await supabase.from("kitchen_profiles").upsert({
+        restaurant_id: restaurant.id,
+        profile_type: key,
+        energy_cost: val.energy,
+        labor_cost: val.labor,
+        equipment_cost: val.equipment,
+      } as any, { onConflict: "restaurant_id,profile_type" });
+    }
+    toast.success(isAr ? "تم حفظ ملفات المطبخ" : "Kitchen profiles saved");
+    setSaving(false);
+  };
+
+  const ccy = currency === "USD" ? "$" : "د.ع";
 
   return (
     <AppLayout>
@@ -44,10 +103,12 @@ export default function SettingsPage() {
         <Tabs defaultValue="restaurant" dir={isAr ? "rtl" : "ltr"}>
           <TabsList className="rounded-xl">
             <TabsTrigger value="restaurant" className="rounded-lg">{t("restaurant")}</TabsTrigger>
+            <TabsTrigger value="kitchen" className="rounded-lg">{t("kitchenSettings")}</TabsTrigger>
             <TabsTrigger value="profile" className="rounded-lg">{t("profile")}</TabsTrigger>
             <TabsTrigger value="notifications" className="rounded-lg">{t("notifications")}</TabsTrigger>
           </TabsList>
 
+          {/* Restaurant Tab */}
           <TabsContent value="restaurant" className="space-y-4 mt-4">
             <Card className="rounded-2xl shadow-card">
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Crown className="w-4 h-4 text-primary" />{isAr ? "الخطة الحالية" : "Current Plan"}</CardTitle></CardHeader>
@@ -70,10 +131,7 @@ export default function SettingsPage() {
                   <Select value={city} onValueChange={setCity}>
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="الموصل">الموصل</SelectItem>
-                      <SelectItem value="بغداد">بغداد</SelectItem>
-                      <SelectItem value="أربيل">أربيل</SelectItem>
-                      <SelectItem value="البصرة">البصرة</SelectItem>
+                      {["الموصل", "بغداد", "أربيل", "البصرة"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       <SelectItem value="other">{isAr ? "أخرى" : "Other"}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -87,7 +145,11 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><label className="text-sm font-medium mb-1 block">{isAr ? "هامش الربح المستهدف %" : "Target Margin %"}</label><Input type="number" value={targetMargin} onChange={e => setTargetMargin(e.target.value)} dir="ltr" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-sm font-medium mb-1 block">{isAr ? "هامش الربح المستهدف %" : "Target Margin %"}</label><Input type="number" value={targetMargin} onChange={e => setTargetMargin(e.target.value)} dir="ltr" /></div>
+                  <div><label className="text-sm font-medium mb-1 block">{t("minMarginFloor")}</label><Input type="number" value={minMarginFloor} onChange={e => setMinMarginFloor(e.target.value)} dir="ltr" /></div>
+                </div>
+                <div><label className="text-sm font-medium mb-1 block">{t("baselinePlates")}</label><Input type="number" value={baselinePlates} onChange={e => setBaselinePlates(e.target.value)} dir="ltr" /></div>
                 <Button onClick={handleSaveRestaurant} disabled={saving} className="w-full rounded-xl gradient-primary border-0">
                   <Save className="w-4 h-4 me-2" />{saving ? t("loading") : t("save")}
                 </Button>
@@ -95,6 +157,53 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
+          {/* Kitchen Settings Tab */}
+          <TabsContent value="kitchen" className="space-y-4 mt-4">
+            <Card className="rounded-2xl shadow-card">
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Package className="w-4 h-4" />{t("packagingDefaults")} ({ccy})</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className="text-sm font-medium mb-1 block">{t("dineIn")}</label><Input type="number" value={packDinein} onChange={e => setPackDinein(e.target.value)} dir="ltr" /></div>
+                  <div><label className="text-sm font-medium mb-1 block">{t("takeaway")}</label><Input type="number" value={packTakeaway} onChange={e => setPackTakeaway(e.target.value)} dir="ltr" /></div>
+                  <div><label className="text-sm font-medium mb-1 block">{t("delivery")}</label><Input type="number" value={packDelivery} onChange={e => setPackDelivery(e.target.value)} dir="ltr" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-sm font-medium mb-1 block">{t("washingDefaults")}</label><Input type="number" value={washingPerPlate} onChange={e => setWashingPerPlate(e.target.value)} dir="ltr" /></div>
+                  <div><label className="text-sm font-medium mb-1 block">{t("wasteAllocation")}</label><Input type="number" value={monthlyWaste} onChange={e => setMonthlyWaste(e.target.value)} dir="ltr" /></div>
+                </div>
+                <Button onClick={handleSaveRestaurant} disabled={saving} className="w-full rounded-xl gradient-primary border-0">
+                  <Save className="w-4 h-4 me-2" />{saving ? t("loading") : t("save")}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-card">
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Flame className="w-4 h-4 text-warning" />{isAr ? "ملفات حمل المطبخ" : "Kitchen Load Profiles"} ({ccy})</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {(["light", "medium", "heavy"] as const).map(key => (
+                  <div key={key} className="space-y-2">
+                    <p className="text-sm font-medium">{t(`${key}Cook`)}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div><label className="text-xs text-muted-foreground">{isAr ? "طاقة" : "Energy"}</label>
+                        <Input type="number" value={profiles[key].energy} onChange={e => setProfiles(p => ({ ...p, [key]: { ...p[key], energy: Number(e.target.value) } }))} dir="ltr" className="h-8 text-sm" /></div>
+                      <div><label className="text-xs text-muted-foreground">{isAr ? "عمالة" : "Labor"}</label>
+                        <Input type="number" value={profiles[key].labor} onChange={e => setProfiles(p => ({ ...p, [key]: { ...p[key], labor: Number(e.target.value) } }))} dir="ltr" className="h-8 text-sm" /></div>
+                      <div><label className="text-xs text-muted-foreground">{isAr ? "معدات" : "Equipment"}</label>
+                        <Input type="number" value={profiles[key].equipment} onChange={e => setProfiles(p => ({ ...p, [key]: { ...p[key], equipment: Number(e.target.value) } }))} dir="ltr" className="h-8 text-sm" /></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {isAr ? "الإجمالي" : "Total"}: {(profiles[key].energy + profiles[key].labor + profiles[key].equipment).toLocaleString()} {ccy}
+                    </p>
+                  </div>
+                ))}
+                <Button onClick={handleSaveProfiles} disabled={saving} className="w-full rounded-xl gradient-primary border-0">
+                  <Save className="w-4 h-4 me-2" />{saving ? t("loading") : t("save")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-4 mt-4">
             <Card className="rounded-2xl shadow-card">
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="w-4 h-4" />{isAr ? "المعلومات الشخصية" : "Personal Info"}</CardTitle></CardHeader>
@@ -116,18 +225,19 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
+          {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-4 mt-4">
             <Card className="rounded-2xl shadow-card">
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Bell className="w-4 h-4" />{t("notifications")}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {[
                   isAr ? "تنبيهات ارتفاع أسعار المكونات" : "Ingredient price spike alerts",
-                  isAr ? "تحديثات التسعير اليومية" : "Daily pricing updates",
-                  isAr ? "تقارير أداء القائمة الأسبوعية" : "Weekly menu performance reports",
-                  isAr ? "عروض ترويجية مقترحة" : "Suggested promotions",
-                  isAr ? "تنبيهات وصفات خاسرة" : "Loss-maker recipe alerts",
+                  isAr ? "تنبيهات وصفات تحت الهدف" : "Below-target recipe alerts",
+                  isAr ? "توصيات AI جديدة" : "New AI recommendations",
+                  isAr ? "تنبيهات المنافسة" : "Competition alerts",
+                  isAr ? "ملخص أسبوعي" : "Weekly digest",
                 ].map((label, i) => (
-                  <div key={i} className="flex items-center justify-between"><span className="text-sm">{label}</span><Switch defaultChecked={i < 2} /></div>
+                  <div key={i} className="flex items-center justify-between"><span className="text-sm">{label}</span><Switch defaultChecked={i < 3} /></div>
                 ))}
               </CardContent>
             </Card>
