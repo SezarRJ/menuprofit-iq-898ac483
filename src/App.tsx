@@ -93,6 +93,20 @@ const App = () => (
               {/* Settings */}
               <Route path="/app/settings" element={<SettingsPage />} />
 
+              {/* Admin Panel */}
+              <Route path="/admin/login" element={<AdminProvider><AdminLogin /></AdminProvider>} />
+              <Route path="/admin" element={<AdminProvider><AdminOverview /></AdminProvider>} />
+              <Route path="/admin/tenants" element={<AdminProvider><AdminTenants /></AdminProvider>} />
+              <Route path="/admin/tenants/:id" element={<AdminProvider><AdminTenantDetail /></AdminProvider>} />
+              <Route path="/admin/plans" element={<AdminProvider><AdminPlans /></AdminProvider>} />
+              <Route path="/admin/feature-flags" element={<AdminProvider><AdminFeatureFlags /></AdminProvider>} />
+              <Route path="/admin/ai-control" element={<AdminProvider><AdminAIControl /></AdminProvider>} />
+              <Route path="/admin/import-monitor" element={<AdminProvider><AdminImportMonitor /></AdminProvider>} />
+              <Route path="/admin/audit-logs" element={<AdminProvider><AdminAuditLogs /></AdminProvider>} />
+              <Route path="/admin/notifications" element={<AdminProvider><AdminNotifications /></AdminProvider>} />
+              <Route path="/admin/system-health" element={<AdminProvider><AdminSystemHealth /></AdminProvider>} />
+              <Route path="/admin/billing" element={<AdminProvider><AdminBilling /></AdminProvider>} />
+
               {/* Legacy redirects */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
               <Route path="/signup" element={<Navigate to="/auth/register" replace />} />
