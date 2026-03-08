@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { I18nProvider } from "@/lib/i18n";
 import { RestaurantProvider } from "@/lib/restaurant-context";
+import { AdminProvider } from "@/lib/admin-context";
 
 // Public pages
 import LandingPage from "./pages/LandingPage";
