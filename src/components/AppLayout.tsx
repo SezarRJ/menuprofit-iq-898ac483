@@ -8,7 +8,7 @@ import {
   AlertTriangle, FileText
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
-import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/restaurant-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ interface NavItem {
   path: string;
   labelKey: string;
   icon: any;
-  minPlan?: PlanTier;
 }
 
 const navSections: { labelKey: string; items: NavItem[] }[] = [
@@ -35,7 +34,7 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
     { path: "/app/data-hub/ingredients", labelKey: "ingredients", icon: Package },
     { path: "/app/data-hub/suppliers", labelKey: "suppliers", icon: Truck },
     { path: "/app/data-hub/overhead", labelKey: "overhead", icon: Calculator },
-    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload, minPlan: "pro" },
+    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload },
   ]},
   { labelKey: "menuStudioSection", items: [
     { path: "/app/menu-studio/recipes", labelKey: "menuStudio", icon: UtensilsCrossed },
@@ -43,13 +42,13 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
   { labelKey: "intelligenceSection", items: [
     { path: "/app/pricing-engine", labelKey: "pricingEngine", icon: DollarSign },
     { path: "/app/promotion-studio", labelKey: "promotionStudio", icon: Gift },
-    { path: "/app/competition", labelKey: "competition", icon: Swords, minPlan: "pro" },
+    { path: "/app/competition", labelKey: "competition", icon: Swords },
   ]},
   { labelKey: "insightsSection", items: [
-    { path: "/app/ai-recommendations", labelKey: "aiRecommendations", icon: Brain, minPlan: "pro" },
+    { path: "/app/ai-recommendations", labelKey: "aiRecommendations", icon: Brain },
     { path: "/app/actions", labelKey: "actions", icon: ClipboardList },
-    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle, minPlan: "elite" },
-    { path: "/app/reports", labelKey: "reports", icon: FileText, minPlan: "pro" },
+    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle },
+    { path: "/app/reports", labelKey: "reports", icon: FileText },
   ]},
 ];
 
@@ -58,11 +57,6 @@ const sectionLabels: Record<string, Record<string, string>> = {
   en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Smart Engines", insightsSection: "Insights & Analysis" },
 };
 
-function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
-  if (!minPlan) return true;
-  const order: PlanTier[] = ["free", "pro", "elite"];
-  return order.indexOf(currentPlan) >= order.indexOf(minPlan);
-}
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
@@ -96,19 +90,14 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = location.pathname.startsWith(item.path);
-                const locked = !canAccess(item.minPlan, plan);
                 return (
                   <Link
                     key={item.path}
-                    to={locked ? "#" : item.path}
-                    onClick={(e) => {
-                      if (locked) { e.preventDefault(); return; }
-                      onNavigate?.();
-                    }}
+                    to={item.path}
+                    onClick={() => onNavigate?.()}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
                       collapsed && "justify-center px-2",
-                      locked ? "text-sidebar-foreground/25 cursor-not-allowed" :
                       active ? "bg-sidebar-primary/15 text-sidebar-primary font-medium" :
                       "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
@@ -116,11 +105,6 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   >
                     <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
                     {!collapsed && <span className="flex-1">{t(item.labelKey)}</span>}
-                    {!collapsed && locked && (
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 border-sidebar-foreground/20 text-sidebar-foreground/30">
-                        {t(item.minPlan || "pro")}
-                      </Badge>
-                    )}
                   </Link>
                 );
               })}
