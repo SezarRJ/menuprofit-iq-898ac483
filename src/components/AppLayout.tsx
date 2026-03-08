@@ -24,7 +24,6 @@ interface NavItem {
   path: string;
   labelKey: string;
   icon: any;
-  minPlan?: PlanTier;
 }
 
 const navSections: { labelKey: string; items: NavItem[] }[] = [
