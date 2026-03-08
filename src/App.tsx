@@ -10,6 +10,7 @@ import { RestaurantProvider } from "@/lib/restaurant-context";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Onboarding from "./pages/Onboarding";
 
 // App pages
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth/login" element={<Login />} />
               <Route path="/auth/register" element={<Register />} />
+              <Route path="/onboarding" element={<Onboarding />} />
 
               {/* Dashboard */}
               <Route path="/app/dashboard" element={<Dashboard />} />

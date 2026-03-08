@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/lib/restaurant-context";
 import { useLanguage } from "@/lib/i18n";
+import { formatCurrency } from "@/lib/true-cost";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, UtensilsCrossed, Search, AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-const categories = ["الكل", "شاورما", "برغر", "بيتزا", "مشويات", "سلطات", "مشروبات", "حلويات", "عام"];
+const categories = ["الكل", "شاورما", "برغر", "بيتزا", "مشويات", "سلطات", "مشروبات", "حلويات", "أطباق رئيسية", "مقبلات", "عام"];
 
 type Strength = "strong" | "moderate" | "weak";
 
@@ -32,24 +33,49 @@ export default function MenuStudioRecipes() {
   const [filterCat, setFilterCat] = useState("الكل");
   const [filterStrength, setFilterStrength] = useState("all");
 
+  const ccy = restaurant?.default_currency || "IQD";
+  const fc = (n: number) => formatCurrency(Math.round(n), ccy);
+
   useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);
-    const { data: recs } = await supabase
-      .from("recipes")
-      .select("id, name, category, selling_price, recipe_ingredients(quantity, ingredients(unit_price))")
-      .eq("restaurant_id", restaurant!.id).order("created_at");
+    const [recipesRes, costsRes, profilesRes] = await Promise.all([
+      supabase.from("recipes")
+        .select("id, name, category, selling_price, kitchen_profile, packaging_channel, recipe_ingredients(quantity, ingredients(unit_price))")
+        .eq("restaurant_id", restaurant!.id).order("created_at"),
+      supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant!.id),
+      supabase.from("kitchen_profiles").select("*").eq("restaurant_id", restaurant!.id),
+    ]);
 
-    const { data: costs } = await supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant!.id);
-    const totalOp = costs?.reduce((s, c) => s + Number(c.monthly_amount), 0) ?? 0;
-    const overhead = totalOp / Math.max(recs?.length ?? 1, 1);
+    const totalOp = (costsRes.data ?? []).reduce((s, c) => s + Number(c.monthly_amount), 0);
+    const baseline = (restaurant as any)?.baseline_plates || 6000;
+    const overheadPP = baseline > 0 ? totalOp / baseline : 0;
+    const washingPP = (restaurant as any)?.washing_per_plate ?? 200;
+    const wasteBudget = (restaurant as any)?.monthly_waste_budget ?? 0;
+    const wasteAlloc = baseline > 0 ? wasteBudget / baseline : 0;
 
-    const rows: RecipeCard[] = (recs ?? []).map(r => {
+    const kProfiles: Record<string, number> = {};
+    (profilesRes.data ?? []).forEach((p: any) => {
+      kProfiles[p.profile_type] = Number(p.energy_cost) + Number(p.labor_cost) + Number(p.equipment_cost);
+    });
+    const defaultKL: Record<string, number> = { light: 600, medium: 1350, heavy: 2500 };
+
+    const packCosts: Record<string, number> = {
+      "dine-in": (restaurant as any)?.packaging_dinein ?? 0,
+      "takeaway": (restaurant as any)?.packaging_takeaway ?? 500,
+      "delivery": (restaurant as any)?.packaging_delivery ?? 1000,
+    };
+
+    const rows: RecipeCard[] = (recipesRes.data ?? []).map(r => {
       const foodCost = r.recipe_ingredients?.reduce(
         (s: number, ri: any) => s + Number(ri.quantity) * Number(ri.ingredients?.unit_price ?? 0), 0
       ) ?? 0;
-      const trueCost = foodCost + overhead;
+      const kProfile = (r as any).kitchen_profile || "medium";
+      const pChannel = (r as any).packaging_channel || "dine-in";
+      const kitchenLoad = kProfiles[kProfile] ?? defaultKL[kProfile] ?? 1350;
+      const packaging = packCosts[pChannel] ?? 0;
+      const trueCost = foodCost + kitchenLoad + packaging + washingPP + wasteAlloc + overheadPP;
       const sp = Number(r.selling_price);
       const margin = sp > 0 ? ((sp - trueCost) / sp) * 100 : -100;
       const contribution = sp - trueCost;
@@ -60,7 +86,6 @@ export default function MenuStudioRecipes() {
     setLoading(false);
   };
 
-  const currency = restaurant?.default_currency === "USD" ? "$" : "د.ع";
   const strengthColors: Record<Strength, string> = { strong: "text-success", moderate: "text-warning", weak: "text-destructive" };
   const strengthBgs: Record<Strength, string> = { strong: "bg-success/10", moderate: "bg-warning/10", weak: "bg-destructive/10" };
   const strengthLabels: Record<Strength, string> = {
@@ -84,7 +109,7 @@ export default function MenuStudioRecipes() {
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold">{t("menuStudio")}</h1>
             <div className="flex gap-4 mt-1 text-sm">
@@ -103,11 +128,11 @@ export default function MenuStudioRecipes() {
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("search")} className="ps-9 rounded-xl" />
           </div>
           <Select value={filterCat} onValueChange={setFilterCat}>
-            <SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
           </Select>
           <Select value={filterStrength} onValueChange={setFilterStrength}>
-            <SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{isAr ? "الكل" : "All"}</SelectItem>
               <SelectItem value="strong">{isAr ? "قوي" : "Strong"}</SelectItem>
@@ -121,7 +146,10 @@ export default function MenuStudioRecipes() {
         {filtered.length === 0 ? (
           <Card className="rounded-2xl"><CardContent className="py-12 text-center">
             <UtensilsCrossed className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-muted-foreground">{t("noData")}</p>
+            <p className="text-muted-foreground">{recipes.length === 0 ? (isAr ? "لم تنشئ وصفات بعد — ابدأ بإنشاء أول وصفة" : "No recipes yet — create your first recipe") : t("noData")}</p>
+            {recipes.length === 0 && (
+              <Button asChild className="mt-4 rounded-xl"><Link to="/app/menu-studio/recipes/new"><Plus className="w-4 h-4 me-2" />{t("newRecipe")}</Link></Button>
+            )}
           </CardContent></Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -129,7 +157,7 @@ export default function MenuStudioRecipes() {
               const Icon = strengthIcons[r.strength];
               return (
                 <Link key={r.id} to={`/app/menu-studio/recipes/${r.id}`}>
-                  <Card className="shadow-card rounded-2xl hover:shadow-card-hover transition-all cursor-pointer">
+                  <Card className="shadow-card rounded-2xl hover:shadow-card-hover transition-all cursor-pointer h-full">
                     <CardContent className="pt-5 pb-5">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -141,9 +169,9 @@ export default function MenuStudioRecipes() {
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-muted-foreground">{t("sellingPrice")}:</span><br /><span className="font-semibold">{r.selling_price.toLocaleString()} {currency}</span></div>
-                        <div><span className="text-muted-foreground">{t("trueCost")}:</span><br /><span className="font-semibold">{r.true_cost.toFixed(0)} {currency}</span></div>
-                        <div><span className="text-muted-foreground">{t("foodCost")}:</span><br /><span className="font-semibold">{r.food_cost.toFixed(0)} {currency}</span></div>
+                        <div><span className="text-muted-foreground">{t("sellingPrice")}:</span><br /><span className="font-semibold">{fc(r.selling_price)}</span></div>
+                        <div><span className="text-muted-foreground">{t("trueCost")}:</span><br /><span className="font-semibold">{fc(r.true_cost)}</span></div>
+                        <div><span className="text-muted-foreground">{t("foodCost")}:</span><br /><span className="font-semibold">{fc(r.food_cost)}</span></div>
                         <div><span className="text-muted-foreground">{t("margin")}:</span><br /><span className={`font-extrabold ${strengthColors[r.strength]}`}>{r.margin.toFixed(0)}%</span></div>
                       </div>
                       {r.margin < 0 && (
