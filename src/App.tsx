@@ -33,6 +33,20 @@ import SuppliersPage from "./pages/SuppliersPage";
 
 import NotFound from "./pages/NotFound";
 
+// Admin pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminTenants from "./pages/admin/AdminTenants";
+import AdminTenantDetail from "./pages/admin/AdminTenantDetail";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
+import AdminAIControl from "./pages/admin/AdminAIControl";
+import AdminImportMonitor from "./pages/admin/AdminImportMonitor";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
+import AdminBilling from "./pages/admin/AdminBilling";
+
 const queryClient = new QueryClient();
 
 const App = () => (
