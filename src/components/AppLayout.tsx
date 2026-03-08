@@ -57,11 +57,6 @@ const sectionLabels: Record<string, Record<string, string>> = {
   en: { dataHub: "Data Hub", menuStudioSection: "Menu Studio", intelligenceSection: "Smart Engines", insightsSection: "Insights & Analysis" },
 };
 
-function canAccess(minPlan: PlanTier | undefined, currentPlan: PlanTier) {
-  if (!minPlan) return true;
-  const order: PlanTier[] = ["free", "pro", "elite"];
-  return order.indexOf(currentPlan) >= order.indexOf(minPlan);
-}
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
