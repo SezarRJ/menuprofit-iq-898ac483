@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { I18nProvider } from "@/lib/i18n";
 import { RestaurantProvider } from "@/lib/restaurant-context";
+import { AdminProvider } from "@/lib/admin-context";
 
 // Public pages
 import LandingPage from "./pages/LandingPage";
@@ -31,6 +32,20 @@ import SettingsPage from "./pages/SettingsPage";
 import SuppliersPage from "./pages/SuppliersPage";
 
 import NotFound from "./pages/NotFound";
+
+// Admin pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminTenants from "./pages/admin/AdminTenants";
+import AdminTenantDetail from "./pages/admin/AdminTenantDetail";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminFeatureFlags from "./pages/admin/AdminFeatureFlags";
+import AdminAIControl from "./pages/admin/AdminAIControl";
+import AdminImportMonitor from "./pages/admin/AdminImportMonitor";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
+import AdminBilling from "./pages/admin/AdminBilling";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +92,20 @@ const App = () => (
 
               {/* Settings */}
               <Route path="/app/settings" element={<SettingsPage />} />
+
+              {/* Admin Panel */}
+              <Route path="/admin/login" element={<AdminProvider><AdminLogin /></AdminProvider>} />
+              <Route path="/admin" element={<AdminProvider><AdminOverview /></AdminProvider>} />
+              <Route path="/admin/tenants" element={<AdminProvider><AdminTenants /></AdminProvider>} />
+              <Route path="/admin/tenants/:id" element={<AdminProvider><AdminTenantDetail /></AdminProvider>} />
+              <Route path="/admin/plans" element={<AdminProvider><AdminPlans /></AdminProvider>} />
+              <Route path="/admin/feature-flags" element={<AdminProvider><AdminFeatureFlags /></AdminProvider>} />
+              <Route path="/admin/ai-control" element={<AdminProvider><AdminAIControl /></AdminProvider>} />
+              <Route path="/admin/import-monitor" element={<AdminProvider><AdminImportMonitor /></AdminProvider>} />
+              <Route path="/admin/audit-logs" element={<AdminProvider><AdminAuditLogs /></AdminProvider>} />
+              <Route path="/admin/notifications" element={<AdminProvider><AdminNotifications /></AdminProvider>} />
+              <Route path="/admin/system-health" element={<AdminProvider><AdminSystemHealth /></AdminProvider>} />
+              <Route path="/admin/billing" element={<AdminProvider><AdminBilling /></AdminProvider>} />
 
               {/* Legacy redirects */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
