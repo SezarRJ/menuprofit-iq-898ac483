@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/lib/restaurant-context";
 import { useLanguage } from "@/lib/i18n";
+import { formatCurrency } from "@/lib/true-cost";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,8 @@ interface Recipe {
 
 interface PriceSuggestion {
   min_safe: number; recommended: number; attractive: number; premium: number;
-  explanations: { min_safe: string; recommended: string; attractive: string; premium: string };
-  confidence: { min_safe: string; recommended: string; attractive: string; premium: string };
+  explanations: Record<string, string>;
+  confidence: Record<string, string>;
 }
 
 export default function PricingEngine() {
@@ -31,24 +32,50 @@ export default function PricingEngine() {
   const [generating, setGenerating] = useState(false);
   const [suggestion, setSuggestion] = useState<PriceSuggestion | null>(null);
 
+  const ccy = restaurant?.default_currency || "IQD";
+  const fc = (n: number) => formatCurrency(Math.round(n), ccy);
+
   useEffect(() => { if (restaurant) load(); else setLoading(false); }, [restaurant]);
 
   const load = async () => {
     setLoading(true);
-    const { data: recs } = await supabase
-      .from("recipes")
-      .select("id, name, category, selling_price, recipe_ingredients(quantity, ingredients(unit_price))")
-      .eq("restaurant_id", restaurant!.id);
+    const [recipesRes, costsRes, profilesRes] = await Promise.all([
+      supabase.from("recipes")
+        .select("id, name, category, selling_price, kitchen_profile, packaging_channel, recipe_ingredients(quantity, ingredients(unit_price))")
+        .eq("restaurant_id", restaurant!.id),
+      supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant!.id),
+      supabase.from("kitchen_profiles").select("*").eq("restaurant_id", restaurant!.id),
+    ]);
 
-    const { data: costs } = await supabase.from("operating_costs").select("monthly_amount").eq("restaurant_id", restaurant!.id);
-    const totalOp = costs?.reduce((s, c) => s + Number(c.monthly_amount), 0) ?? 0;
-    const overhead = totalOp / Math.max(recs?.length ?? 1, 1);
+    const totalOp = (costsRes.data ?? []).reduce((s, c) => s + Number(c.monthly_amount), 0);
+    const baseline = (restaurant as any)?.baseline_plates || 6000;
+    const overheadPP = baseline > 0 ? totalOp / baseline : 0;
+    const washingPP = (restaurant as any)?.washing_per_plate ?? 200;
+    const wasteBudget = (restaurant as any)?.monthly_waste_budget ?? 0;
+    const wasteAlloc = baseline > 0 ? wasteBudget / baseline : 0;
 
-    const mapped = (recs ?? []).map(r => {
+    const kProfiles: Record<string, number> = {};
+    (profilesRes.data ?? []).forEach((p: any) => {
+      kProfiles[p.profile_type] = Number(p.energy_cost) + Number(p.labor_cost) + Number(p.equipment_cost);
+    });
+    const defaultKL: Record<string, number> = { light: 600, medium: 1350, heavy: 2500 };
+
+    const packCosts: Record<string, number> = {
+      "dine-in": (restaurant as any)?.packaging_dinein ?? 0,
+      "takeaway": (restaurant as any)?.packaging_takeaway ?? 500,
+      "delivery": (restaurant as any)?.packaging_delivery ?? 1000,
+    };
+
+    const mapped = (recipesRes.data ?? []).map(r => {
       const foodCost = r.recipe_ingredients?.reduce(
         (s: number, ri: any) => s + Number(ri.quantity) * Number(ri.ingredients?.unit_price ?? 0), 0
       ) ?? 0;
-      return { id: r.id, name: r.name, category: r.category, selling_price: Number(r.selling_price), food_cost: foodCost, true_cost: foodCost + overhead };
+      const kProfile = (r as any).kitchen_profile || "medium";
+      const pChannel = (r as any).packaging_channel || "dine-in";
+      const kitchenLoad = kProfiles[kProfile] ?? defaultKL[kProfile] ?? 1350;
+      const packaging = packCosts[pChannel] ?? 0;
+      const trueCost = foodCost + kitchenLoad + packaging + washingPP + wasteAlloc + overheadPP;
+      return { id: r.id, name: r.name, category: r.category, selling_price: Number(r.selling_price), food_cost: foodCost, true_cost: trueCost };
     });
     setRecipes(mapped);
     if (mapped.length > 0) setSelected(mapped[0].id);
@@ -60,41 +87,40 @@ export default function PricingEngine() {
     if (!recipe) return;
     setGenerating(true);
 
-    try {
-      await supabase.functions.invoke("ai-chat", {
-        body: {
-          restaurantId: restaurant!.id,
-          messages: [{
-            role: "user",
-            content: `Generate 4 prices for "${recipe.name}" (${recipe.category}). True cost: ${recipe.true_cost.toFixed(0)} ${restaurant?.default_currency}. Current price: ${recipe.selling_price}.`
-          }]
-        }
-      });
-    } catch { /* fallback below */ }
+    // Also check competitor prices
+    const { data: compPrices } = await supabase.from("competitor_prices").select("price").eq("recipe_id", recipe.id);
+    const avgComp = compPrices && compPrices.length > 0 ? compPrices.reduce((s, c) => s + Number(c.price), 0) / compPrices.length : 0;
 
     const trueCost = recipe.true_cost;
+    const minSafe = Math.round(trueCost * 1.1);
+    const recommended = avgComp > 0 ? Math.round((trueCost * 1.45 + avgComp) / 2) : Math.round(trueCost * 1.45);
+    const attractive = Math.round(recommended * 0.95); // psychological
+    const premium = avgComp > 0 ? Math.round(avgComp * 1.15) : Math.round(trueCost * 1.7);
+
     setSuggestion({
-      min_safe: Math.round(trueCost * 1.1),
-      recommended: Math.round(trueCost * 1.45),
-      attractive: Math.round(trueCost * 1.35),
-      premium: Math.round(trueCost * 1.7),
+      min_safe: minSafe,
+      recommended,
+      attractive,
+      premium,
       explanations: {
-        min_safe: isAr ? `يغطي التكلفة الحقيقية (${trueCost.toFixed(0)}) + هامش 10%` : `Covers true cost (${trueCost.toFixed(0)}) + 10% margin`,
-        recommended: isAr ? "سعر تنافسي يحقق هامش ربح جيد مع الحفاظ على تنافسية السوق" : "Competitive price with good margin and market positioning",
-        attractive: isAr ? "تسعير نفسي جذاب للعملاء — رقم مألوف" : "Psychological pricing — familiar number attractive to customers",
-        premium: isAr ? "تموضع راقي للعلامة التجارية — أعلى جودة مُدركة" : "High-end brand positioning — highest perceived quality",
+        min_safe: isAr ? `يغطي التكلفة الحقيقية (${fc(trueCost)}) + هامش أمان 10%` : `Covers true cost (${fc(trueCost)}) + 10% safety margin`,
+        recommended: avgComp > 0
+          ? (isAr ? `موازنة بين التكلفة ومتوسط المنافسين (${fc(avgComp)})` : `Balanced between cost and competitor avg (${fc(avgComp)})`)
+          : (isAr ? "سعر تنافسي يحقق هامش ربح جيد" : "Competitive price with good margin"),
+        attractive: isAr ? "تسعير نفسي جذاب — رقم مألوف يجذب العملاء" : "Psychological pricing — familiar number that attracts customers",
+        premium: avgComp > 0
+          ? (isAr ? `أعلى من متوسط المنافسين بـ 15% — تموضع راقي` : `15% above competitor avg — premium positioning`)
+          : (isAr ? "تموضع راقي للعلامة التجارية" : "Premium brand positioning"),
       },
       confidence: {
         min_safe: isAr ? "عالية" : "High",
-        recommended: isAr ? "عالية" : "High",
+        recommended: avgComp > 0 ? (isAr ? "عالية" : "High") : (isAr ? "متوسطة" : "Medium"),
         attractive: isAr ? "متوسطة" : "Medium",
         premium: isAr ? "متوسطة" : "Medium",
       },
     });
     setGenerating(false);
   };
-
-  const currency = restaurant?.default_currency === "USD" ? "$" : "د.ع";
 
   if (loading) return <AppLayout><div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></AppLayout>;
 
@@ -114,8 +140,8 @@ export default function PricingEngine() {
 
         <Card className="shadow-card rounded-2xl">
           <CardContent className="pt-6 space-y-4">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
+            <div className="flex gap-4 items-end flex-wrap">
+              <div className="flex-1 min-w-[200px]">
                 <label className="text-sm font-medium mb-2 block">{isAr ? "اختر الطبق" : "Select Recipe"}</label>
                 <Select value={selected} onValueChange={v => { setSelected(v); setSuggestion(null); }}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
@@ -126,15 +152,15 @@ export default function PricingEngine() {
               </div>
               <Button onClick={generatePricing} disabled={generating || !selected} className="rounded-xl gradient-primary border-0">
                 <Sparkles className="w-4 h-4 me-2" />
-                {generating ? (isAr ? "جاري التوليد..." : "Generating...") : t("generatePricing")}
+                {generating ? (isAr ? "جاري التحليل..." : "Analyzing...") : t("generatePricing")}
               </Button>
             </div>
 
             {selectedRecipe && (
-              <div className="flex gap-6 text-sm bg-muted/30 rounded-xl p-4">
-                <div><span className="text-muted-foreground">{t("foodCost")}:</span> <span className="font-semibold">{selectedRecipe.food_cost.toLocaleString()} {currency}</span></div>
-                <div><span className="text-muted-foreground">{t("trueCost")}:</span> <span className="font-semibold">{selectedRecipe.true_cost.toLocaleString()} {currency}</span></div>
-                <div><span className="text-muted-foreground">{t("sellingPrice")}:</span> <span className="font-semibold">{selectedRecipe.selling_price.toLocaleString()} {currency}</span></div>
+              <div className="flex gap-4 md:gap-6 text-sm bg-muted/30 rounded-xl p-4 flex-wrap">
+                <div><span className="text-muted-foreground">{t("foodCost")}:</span> <span className="font-semibold">{fc(selectedRecipe.food_cost)}</span></div>
+                <div><span className="text-muted-foreground">{t("trueCost")}:</span> <span className="font-semibold">{fc(selectedRecipe.true_cost)}</span></div>
+                <div><span className="text-muted-foreground">{t("sellingPrice")}:</span> <span className="font-semibold">{fc(selectedRecipe.selling_price)}</span></div>
               </div>
             )}
           </CardContent>
@@ -154,7 +180,7 @@ export default function PricingEngine() {
                         <p className="text-sm text-muted-foreground">{card.label}</p>
                         <Badge variant="outline" className="text-[10px] px-1.5">{card.confidence}</Badge>
                       </div>
-                      <p className={`text-2xl font-extrabold ${card.color} mt-1`}>{card.value.toLocaleString()} {currency}</p>
+                      <p className={`text-2xl font-extrabold ${card.color} mt-1`}>{fc(card.value)}</p>
                       <p className="text-xs text-muted-foreground mt-2">{card.explanation}</p>
                     </div>
                   </div>
