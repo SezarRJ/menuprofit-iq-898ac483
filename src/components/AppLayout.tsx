@@ -8,7 +8,7 @@ import {
   AlertTriangle, FileText
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
-import { useRestaurant, PlanTier } from "@/lib/restaurant-context";
+import { useRestaurant } from "@/lib/restaurant-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
