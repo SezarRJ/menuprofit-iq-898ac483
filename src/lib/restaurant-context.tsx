@@ -35,22 +35,11 @@ const RestaurantContext = createContext<RestaurantContextType>({
 
 export const useRestaurant = () => useContext(RestaurantContext);
 
-// Plan feature gates
-export const PLAN_FEATURES: Record<string, PlanTier[]> = {
-  dashboard: ["free", "pro", "elite"],
-  costs: ["free", "pro", "elite"],
-  ingredients: ["free", "pro", "elite"],
-  recipes: ["free", "pro", "elite"],
-  "discount-rules": ["pro", "elite"],
-  sales: ["pro", "elite"],
-  "ai-assistant": ["elite"],
-  setup: ["free", "pro", "elite"],
-};
+// Plan feature gates — all features unlocked for now
+export const PLAN_FEATURES: Record<string, PlanTier[]> = {};
 
-export function canAccessFeature(feature: string, plan: PlanTier): boolean {
-  const allowed = PLAN_FEATURES[feature];
-  if (!allowed) return true;
-  return allowed.includes(plan);
+export function canAccessFeature(_feature: string, _plan: PlanTier): boolean {
+  return true;
 }
 
 export function RestaurantProvider({ children }: { children: ReactNode }) {
