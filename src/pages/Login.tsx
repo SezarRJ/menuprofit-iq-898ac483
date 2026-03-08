@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sparkles, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t, lang, setLang } = useLanguage();
+  const isAr = lang === "ar";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,55 +22,50 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error("خطأ في تسجيل الدخول: " + error.message);
+      toast.error(isAr ? "خطأ في تسجيل الدخول: " + error.message : "Login error: " + error.message);
     } else {
-      navigate("/app/dashboard");
+      // Check if user has a restaurant — if not, redirect to onboarding
+      const { data: rest } = await supabase.from("restaurants").select("id").limit(1).maybeSingle();
+      if (rest) {
+        navigate("/app/dashboard");
+      } else {
+        navigate("/onboarding");
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-card animate-fade-in">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="absolute top-4 end-4">
+        <Button variant="ghost" size="sm" onClick={() => setLang(isAr ? "en" : "ar")}><Globe className="w-4 h-4 me-1" />{isAr ? "EN" : "AR"}</Button>
+      </div>
+      <Card className="w-full max-w-md shadow-card rounded-2xl animate-fade-in">
         <CardHeader className="text-center space-y-2 pb-2">
-          <h1 className="text-2xl font-bold text-primary">MenuProfit</h1>
-          <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
+          <Link to="/" className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            </div>
+          </Link>
+          <h1 className="text-xl font-bold text-primary">SMARTMENU</h1>
+          <CardTitle className="text-2xl">{t("login")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                dir="ltr"
-                className="text-left"
-                required
-              />
+              <label className="text-sm font-medium">{t("email")}</label>
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" dir="ltr" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                dir="ltr"
-                className="text-left"
-                required
-              />
+              <label className="text-sm font-medium">{t("password")}</label>
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} dir="ltr" required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "جاري الدخول..." : "دخول"}
+            <Button type="submit" className="w-full gradient-primary border-0 rounded-xl" disabled={loading}>
+              {loading ? (isAr ? "جاري الدخول..." : "Signing in...") : t("login")}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            ليس لديك حساب؟{" "}
-            <Link to="/auth/register" className="text-primary font-medium hover:underline">
-              إنشاء حساب
-            </Link>
+            {isAr ? "ليس لديك حساب؟" : "Don't have an account?"}{" "}
+            <Link to="/auth/register" className="text-primary font-medium hover:underline">{t("register")}</Link>
           </p>
         </CardContent>
       </Card>
