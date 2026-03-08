@@ -35,7 +35,7 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
     { path: "/app/data-hub/ingredients", labelKey: "ingredients", icon: Package },
     { path: "/app/data-hub/suppliers", labelKey: "suppliers", icon: Truck },
     { path: "/app/data-hub/overhead", labelKey: "overhead", icon: Calculator },
-    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload, minPlan: "pro" },
+    { path: "/app/data-hub/sales", labelKey: "salesData", icon: Upload },
   ]},
   { labelKey: "menuStudioSection", items: [
     { path: "/app/menu-studio/recipes", labelKey: "menuStudio", icon: UtensilsCrossed },
@@ -43,13 +43,13 @@ const navSections: { labelKey: string; items: NavItem[] }[] = [
   { labelKey: "intelligenceSection", items: [
     { path: "/app/pricing-engine", labelKey: "pricingEngine", icon: DollarSign },
     { path: "/app/promotion-studio", labelKey: "promotionStudio", icon: Gift },
-    { path: "/app/competition", labelKey: "competition", icon: Swords, minPlan: "pro" },
+    { path: "/app/competition", labelKey: "competition", icon: Swords },
   ]},
   { labelKey: "insightsSection", items: [
-    { path: "/app/ai-recommendations", labelKey: "aiRecommendations", icon: Brain, minPlan: "pro" },
+    { path: "/app/ai-recommendations", labelKey: "aiRecommendations", icon: Brain },
     { path: "/app/actions", labelKey: "actions", icon: ClipboardList },
-    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle, minPlan: "elite" },
-    { path: "/app/reports", labelKey: "reports", icon: FileText, minPlan: "pro" },
+    { path: "/app/risk-radar", labelKey: "riskRadar", icon: AlertTriangle },
+    { path: "/app/reports", labelKey: "reports", icon: FileText },
   ]},
 ];
 
