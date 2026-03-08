@@ -96,19 +96,14 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = location.pathname.startsWith(item.path);
-                const locked = !canAccess(item.minPlan, plan);
                 return (
                   <Link
                     key={item.path}
-                    to={locked ? "#" : item.path}
-                    onClick={(e) => {
-                      if (locked) { e.preventDefault(); return; }
-                      onNavigate?.();
-                    }}
+                    to={item.path}
+                    onClick={() => onNavigate?.()}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
                       collapsed && "justify-center px-2",
-                      locked ? "text-sidebar-foreground/25 cursor-not-allowed" :
                       active ? "bg-sidebar-primary/15 text-sidebar-primary font-medium" :
                       "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
@@ -116,11 +111,6 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   >
                     <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
                     {!collapsed && <span className="flex-1">{t(item.labelKey)}</span>}
-                    {!collapsed && locked && (
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 border-sidebar-foreground/20 text-sidebar-foreground/30">
-                        {t(item.minPlan || "pro")}
-                      </Badge>
-                    )}
                   </Link>
                 );
               })}
