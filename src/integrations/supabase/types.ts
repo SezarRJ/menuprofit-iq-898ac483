@@ -795,6 +795,135 @@ export type Database = {
           },
         ]
       }
+      platform_admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          id: string
+          reason: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      platform_feature_flags: {
+        Row: {
+          created_at: string
+          default_enabled: boolean
+          description: string
+          id: string
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_enabled?: boolean
+          description?: string
+          id?: string
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_enabled?: boolean
+          description?: string
+          id?: string
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_notifications: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          created_by: string
+          id: string
+          sent_count: number
+          status: string
+          target_city: string | null
+          target_plan: string | null
+          title: string
+        }
+        Insert: {
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          sent_count?: number
+          status?: string
+          target_city?: string | null
+          target_plan?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          sent_count?: number
+          status?: string
+          target_city?: string | null
+          target_plan?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       pricing_suggestions: {
         Row: {
           attractive_price: number
@@ -1321,6 +1450,85 @@ export type Database = {
           },
         ]
       }
+      tenant_feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_key: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          flag_key: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_feature_flags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_limits: {
+        Row: {
+          ai_monthly_quota: number
+          created_at: string
+          id: string
+          imports_limit: number
+          ingredients_limit: number
+          inventory_limit: number
+          recipes_limit: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_monthly_quota?: number
+          created_at?: string
+          id?: string
+          imports_limit?: number
+          ingredients_limit?: number
+          inventory_limit?: number
+          recipes_limit?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_monthly_quota?: number
+          created_at?: string
+          id?: string
+          imports_limit?: number
+          ingredients_limit?: number
+          inventory_limit?: number
+          recipes_limit?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_limits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1406,6 +1614,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_recipe_owner: { Args: { _recipe_id: string }; Returns: boolean }
       is_restaurant_owner: {
         Args: { _restaurant_id: string }
